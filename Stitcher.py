@@ -5,7 +5,10 @@ import math
 import sys
 import features
 import random
+import logging as log
 from collections import deque
+
+log.basicConfig(level=log.INFO)
 
 INDEX_PATH = "./index/"
 IMAGES_TO_USE_PER_IMAGE = 5
@@ -44,44 +47,51 @@ def getIndexImage(fts, index, vectors):
 
     return random.choice(bestImages)
 
-def processLine(i, w, index, inputImage, tileSize, channels):
+def processLine(i, w, index, inputImage, tileSize, channels, mosaic_tiles):
+    mosaic_tiles.append([])
     for j in range(0, w / tileSize):
         roi = inputImage[i * tileSize:(i + 1) * tileSize, j * tileSize:(j + 1) * tileSize]
         fts = features.extractFeature(roi)
-        patch = preparePatch(getIndexImage(fts, index, channels), tileSize)
+        index_image = getIndexImage(fts, index, channels)
+        # log.info("index_image is {}".format(index_image))
+        mosaic_tiles[-1].append(index_image)
+        patch = preparePatch(index_image, tileSize)
         inputImage[i * tileSize:(i + 1) * tileSize, j * tileSize:(j + 1) * tileSize] = patch
         cv2.imshow("Progress", inputImage)
         cv2.waitKey(1)
 
 def main():
-    
+    mosaic_tiles = []
+
     if len(sys.argv) < 5:
         print "Error, invalid arguments!"
         print "Call with " + sys.argv[0] + " input.jpg [tile-size] [rgb|hsv] output.jpg"
         sys.exit(1)
-        
+
     #parse commandline arguments
     inputImagePath = str(sys.argv[1])
     tileSize = int(sys.argv[2])
     channels = list(str(sys.argv[3]))
-    
+
     #read index + input image
     index = readIndex()
     inputImage = preparInputImage(inputImagePath, tileSize)
-        
+
     (h, w, _) = inputImage.shape
-     
+
     inputImage = cv2.resize(inputImage, (w / tileSize * tileSize, h / tileSize * tileSize))
+
     print inputImage.shape
-      
+
     for i in range(0, h / tileSize):
-        processLine(i, w, index, inputImage, tileSize, channels)
-        
+        processLine(i, w, index, inputImage, tileSize, channels, mosaic_tiles)
+
     print "Finished processing of image"
-     
-    
+
     cv2.imwrite(str(sys.argv[4]), inputImage)
-     
-     
+
+    with open('tiles.txt', 'w') as f: f.write('\n'.join(' '.join(map(str,tile_row)) for tile_row in mosaic_tiles))
+
+
 if __name__ == "__main__":
     main()
