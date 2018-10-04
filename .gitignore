@@ -1,3 +1,10 @@
+.DS_Store
+output/
+
+# Mosaic tile images and indices of their numeric values
+images/
+index/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
