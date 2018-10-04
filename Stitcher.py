@@ -13,6 +13,9 @@ log.basicConfig(level=log.INFO)
 INDEX_PATH = "./index/"
 IMAGES_TO_USE_PER_IMAGE = 5
 
+LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
+Y_COORDINATE_OF_GROUND = -3.5
+
 def readIndex():
     json_data = open(INDEX_PATH + "histogram.index").read()
     return json.loads(json_data)
@@ -60,6 +63,20 @@ def processLine(i, w, index, inputImage, tileSize, channels, mosaic_tiles):
         cv2.imshow("Progress", inputImage)
         cv2.waitKey(1)
 
+def get_block_type(block_name):
+    if block_name.startswith('ice'): return 'ice'
+    elif block_name.startswith('wood'): return 'wood'
+    elif block_name.startswith('stone'): return 'stone'
+    else: raise ValueError('Unknown block type for block "{}"'.format(block_name))
+
+def get_block_xml_elements(blocks):
+    NUMBER_OF_STORIES = len(blocks)
+    elements = ''
+    for inverse_storey_number, blocks_in_storey in enumerate(blocks):
+        height_to_place_the_blocks = (NUMBER_OF_STORIES - inverse_storey_number) * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND
+        for block_sequence, block_name in enumerate(blocks_in_storey): elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block_name), block_sequence * LENGTH_OF_SQUARE_BLOCK_EDGE, height_to_place_the_blocks)
+    return elements
+
 def main():
     mosaic_tiles = []
 
@@ -90,7 +107,9 @@ def main():
 
     cv2.imwrite(str(sys.argv[4]), inputImage)
 
-    with open('tiles.txt', 'w') as f: f.write('\n'.join(' '.join(map(str,tile_row)) for tile_row in mosaic_tiles))
+    # with open('tiles.txt', 'w') as f: f.write('\n'.join(' '.join(map(str,tile_row)) for tile_row in mosaic_tiles))
+
+    with open('blocks.xml', 'w') as f: f.write(get_block_xml_elements(mosaic_tiles))
 
 
 if __name__ == "__main__":
