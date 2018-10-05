@@ -63,11 +63,13 @@ def processLine(i, w, index, inputImage, tileSize, channels, mosaic_tiles):
         cv2.imshow("Progress", inputImage)
         cv2.waitKey(1)
 
+
 def get_block_type(block_name):
     if block_name.startswith('ice'): return 'ice'
     elif block_name.startswith('wood'): return 'wood'
     elif block_name.startswith('stone'): return 'stone'
     else: raise ValueError('Unknown block type for block "{}"'.format(block_name))
+
 
 def get_block_xml_elements(blocks):
     NUMBER_OF_STORIES = len(blocks)
@@ -76,6 +78,17 @@ def get_block_xml_elements(blocks):
         height_to_place_the_blocks = (NUMBER_OF_STORIES - inverse_storey_number) * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND
         for block_sequence, block_name in enumerate(blocks_in_storey): elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block_name), block_sequence * LENGTH_OF_SQUARE_BLOCK_EDGE, height_to_place_the_blocks)
     return elements
+
+
+def transpose_and_invert_tiles(mosaic_tiles):
+    """
+    The mosaic tiles start from top-left and go towards bottom-right. This is
+    not practical when constructing a Science Birds level. We want to start
+    from bottom-left and go towards top-right. Hence, we transpose and invert
+    mosaic tiles.
+    """
+    mosaic_tiles = [column[::-1] for column in map(list, zip(*mosaic_tiles))]
+
 
 def main():
     mosaic_tiles = []
@@ -108,6 +121,8 @@ def main():
     cv2.imwrite(str(sys.argv[4]), inputImage)
 
     # with open('tiles.txt', 'w') as f: f.write('\n'.join(' '.join(map(str,tile_row)) for tile_row in mosaic_tiles))
+
+    transpose_and_invert_tiles(mosaic_tiles)
 
     with open('blocks.xml', 'w') as f: f.write(get_block_xml_elements(mosaic_tiles))
 
