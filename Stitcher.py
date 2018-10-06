@@ -72,11 +72,15 @@ def get_block_type(block_name):
 
 
 def get_block_xml_elements(blocks):
-    NUMBER_OF_STORIES = len(blocks)
     elements = ''
-    for inverse_storey_number, blocks_in_storey in enumerate(blocks):
-        height_to_place_the_blocks = (NUMBER_OF_STORIES - inverse_storey_number) * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND
-        for block_sequence, block_name in enumerate(blocks_in_storey): elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block_name), block_sequence * LENGTH_OF_SQUARE_BLOCK_EDGE, height_to_place_the_blocks)
+    for column_index, column in enumerate(blocks):
+        lateral_distance_to_place_tiles = column_index * LENGTH_OF_SQUARE_BLOCK_EDGE
+        number_of_tiles_placed_for_this_column = 0
+        for tile in column:
+            block_type = get_block_type(tile)
+            if block_type != 'ice':
+                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(block_type, lateral_distance_to_place_tiles, number_of_tiles_placed_for_this_column * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND)
+                number_of_tiles_placed_for_this_column += 1
     return elements
 
 
@@ -87,7 +91,7 @@ def transpose_and_invert_tiles(mosaic_tiles):
     from bottom-left and go towards top-right. Hence, we transpose and invert
     mosaic tiles.
     """
-    mosaic_tiles = [column[::-1] for column in map(list, zip(*mosaic_tiles))]
+    return [column[::-1] for column in map(list, zip(*mosaic_tiles))]
 
 
 def main():
@@ -122,7 +126,7 @@ def main():
 
     # with open('tiles.txt', 'w') as f: f.write('\n'.join(' '.join(map(str,tile_row)) for tile_row in mosaic_tiles))
 
-    transpose_and_invert_tiles(mosaic_tiles)
+    mosaic_tiles = transpose_and_invert_tiles(mosaic_tiles)
 
     with open('blocks.xml', 'w') as f: f.write(get_block_xml_elements(mosaic_tiles))
 
