@@ -1,6 +1,11 @@
 .DS_Store
 output/
 
+# Images and levels
+*.jpg
+*.png
+blocks.xml
+
 # Mosaic tile images and indices of their numeric values
 images/
 index/

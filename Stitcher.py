@@ -5,16 +5,11 @@ import math
 import sys
 import features
 import random
-import logging as log
+from science_birds_level_constructor import construct_level
 from collections import deque
-
-log.basicConfig(level=log.INFO)
 
 INDEX_PATH = "./index/"
 IMAGES_TO_USE_PER_IMAGE = 5
-
-LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
-Y_COORDINATE_OF_GROUND = -3.5
 
 def readIndex():
     json_data = open(INDEX_PATH + "histogram.index").read()
@@ -56,65 +51,11 @@ def processLine(i, w, index, inputImage, tileSize, channels, mosaic_tiles):
         roi = inputImage[i * tileSize:(i + 1) * tileSize, j * tileSize:(j + 1) * tileSize]
         fts = features.extractFeature(roi)
         index_image = getIndexImage(fts, index, channels)
-        # log.info("index_image is {}".format(index_image))
         mosaic_tiles[-1].append(index_image)
         patch = preparePatch(index_image, tileSize)
         inputImage[i * tileSize:(i + 1) * tileSize, j * tileSize:(j + 1) * tileSize] = patch
         cv2.imshow("Progress", inputImage)
         cv2.waitKey(1)
-
-
-def get_block_type(block_name):
-    if block_name.startswith('ice'): return 'ice'
-    elif block_name.startswith('wood'): return 'wood'
-    elif block_name.startswith('stone'): return 'stone'
-    else: raise ValueError('Unknown block type for block "{}"'.format(block_name))
-
-
-def get_xml_elements_from_mosaic_with_ice_blocks(blocks):
-    """
-    .. deprecated::
-       Use :func:`get_xml_elements_from_mosaic` after removing ice blocks from
-       mosaic instead.
-    """
-    elements = ''
-    for column_index, column in enumerate(blocks):
-        lateral_distance_to_place_tiles = column_index * LENGTH_OF_SQUARE_BLOCK_EDGE
-        number_of_tiles_placed_for_this_column = 0
-        for tile in column:
-            block_type = get_block_type(tile)
-            if block_type != 'ice':
-                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(block_type, lateral_distance_to_place_tiles, number_of_tiles_placed_for_this_column * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND)
-                number_of_tiles_placed_for_this_column += 1
-    return elements
-
-
-def get_xml_elements_from_mosaic(mosaic_tiles):
-    """
-    Returns XML elements to generate a Science Birds level.
-    """
-    elements = ''
-    for column_index, column in enumerate(mosaic_tiles):
-        for tile_index, tile in enumerate(column): elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, tile_index * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND)
-    return elements
-
-
-def transpose_and_invert_tiles(mosaic_tiles):
-    """
-    The mosaic tiles start from top-left and go towards bottom-right. This is
-    not practical when constructing a Science Birds level. We want to start
-    from bottom-left and go towards top-right. Hence, we transpose and invert
-    mosaic tiles.
-    """
-    return [column[::-1] for column in map(list, zip(*mosaic_tiles))]
-
-
-def remove_ice_blocks(mosaic_tiles):
-    """
-    Since ice blocks usually represent whitespace (i.e, background), we want to
-    remove them.
-    """
-    return [[tile for tile in column if not tile.startswith('ice')] for column in mosaic_tiles]
 
 
 def main():
@@ -145,13 +86,9 @@ def main():
 
     print "Finished processing of image"
 
+    construct_level(mosaic_tiles)
+
     cv2.imwrite(str(sys.argv[4]), inputImage)
-
-    # with open('tiles.txt', 'w') as f: f.write('\n'.join(' '.join(map(str,tile_row)) for tile_row in mosaic_tiles))
-
-    mosaic_tiles = remove_ice_blocks(transpose_and_invert_tiles(mosaic_tiles))
-
-    with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(mosaic_tiles))
 
 
 if __name__ == "__main__":
