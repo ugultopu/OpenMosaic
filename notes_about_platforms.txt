@@ -1,0 +1,21 @@
+Each platform will be 5x5. The top 5th will be the horizontal rectangle, the
+borders will be small squares and the center will be empty.
+
+You can represent the platforms as a single point, which will be, say, the
+top-left point of the platform rectangle. There will be a list of points (where
+these points represent the platform rectangles) and for each new point, the
+algorithm will be as follows:
+
+1. For every point in the list (that is, for every rectangle platform starting
+point), the difference between the new point's X coordinate and the respective
+point's X coordinate should be greater than the width of the rectangle. If not,
+the difference between the new point's Y coordinate and the respective
+point's Y coordinate should be greater than the height of the rectangle. If
+neither of the conditions are satisfied for even one point in the list, than
+that platform cannot be added because that would mean that platform is
+intersecting with at least one other platform.
+
+2. We also need to make sure that the platform is within the boundaries of the
+structure. That is, we need to make sure that the platform:
+  a. Does not go into the ground.
+  b. Does not overflow from the right.
