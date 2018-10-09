@@ -1,9 +1,12 @@
+from math import abs
 from random import randint
 
 LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
 WIDTH_OF_RECTANGLE = 2.06
 HEIGHT_OF_RECTANGLE = 0.22
 NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM = 5
+PLATFORM_WIDTH = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
+PLATFORM_HEIGHT = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
 Y_COORDINATE_OF_GROUND = -3.5
 
 
@@ -33,13 +36,13 @@ def remove_ice_blocks(mosaic_tiles):
 
 
 def platform_intersects_with_existing_platform(new_platform_coordinate, platform_start_coordinates):
-    for coordinates in new_platform_coordinate:
-        if abs(coordinates[0] - new_platform_coordinate[0]) < NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM and abs(coordinates[1] - new_platform_coordinate[1]) < NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM:
+    for coordinate in platform_start_coordinates:
+        if abs(coordinate[0] - new_platform_coordinate[0]) < PLATFORM_WIDTH and abs(coordinate[1] - new_platform_coordinate[1]) < PLATFORM_HEIGHT:
             return True
     return False
 
 
-def get_platform_coordinates(mosaic_tiles):
+def generate_platform_coordinates(mosaic_tiles):
     """
     Returns a list of coordinates that indicate the starting point of the
     platforms.
@@ -47,18 +50,65 @@ def get_platform_coordinates(mosaic_tiles):
     number_of_unsuccessful_attempts_to_get_a_coordinate = 0
     coordinates = []
     while number_of_unsuccessful_attempts_to_get_a_coordinate < 3:
-        coordinate = (randint(0, len(mosaic_tiles) - 1 - NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM), randint(NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM - 1, len(mosaic_tiles[column_index]) - 1))
-        if not platform_overlap_with_existing_platform(coordinate, coordinates):
+        column_index = randint(0, len(mosaic_tiles) - PLATFORM_WIDTH)
+        coordinate = (column_index, randint(0, len(mosaic_tiles[column_index]) - PLATFORM_HEIGHT))
+        if not platform_intersects_with_existing_platform(coordinate, coordinates):
             coordinates.append(coordinate)
         else:
             number_of_unsuccessful_attempts_to_get_a_coordinate += 1
     return coordinates
 
 
+def insert_platform_into_mosaic(mosaic_tiles, coordinate):
+    """
+    Insert a platform like the following to the structure:
+    ------------
+    |          |
+    |          |
+    |          |
+    |          |
+    ------------
+    """
+    # 1) Make sure the floor of the platform is complete.
+    HEIGHT_OF_PLATFORM_FLOOR = coordinate[1] + 1
+    for column_order in range(1, PLATFORM_WIDTH):
+        column_index = coordinate[0] + column_order
+        while(len(mosaic_tiles[column_index]) < HEIGHT_OF_PLATFORM_FLOOR):
+            mosaic_tiles[column_index].append('stone_square_small_1')
+    # 2) Construct the walls of the platform if required. Walls are at the
+    # first and the last columns.
+    for column_order in [0, PLATFORM_WIDTH - 1]:
+        column_index = coordinate[0] + column_order
+        while(len(mosaic_tiles[column_index]) < HEIGHT_OF_PLATFORM_FLOOR + PLATFORM_HEIGHT - 2):
+            mosaic_tiles[column_index].append('stone_square_small_1')
+    # 3) Create space in the platform
+    for column_order in range(1, PLATFORM_WIDTH - 1):
+        column_index = coordinate[0] + column_order
+        for row_order in range(1, PLATFORM_HEIGHT - 1):
+            row_index = coordinate[1] + row_order
+            '''
+            This method accounts for going out of bounds of the ceiling.
+            Since we are using 'insert', instead of assignment or something
+            else, this makes sure that even if we go out of bounds, the
+            required element will be appended to the list.
+            '''
+            mosaic_tiles[column_index].insert(row_index, 'none')
+    # 4) Put the rectangle to top-left of the platform.
+    mosaic_tiles[coordinate[0]].insert(coordinate[1] + PLATFORM_HEIGHT - 1, 'rectangle-start')
+    # 5) Put 'rectangle-continuation' to the rest of the tiles that the
+    # rectangle covers.
+    for column_order in range(1, PLATFORM_WIDTH):
+        mosaic_tiles[coordinate[0] + column_order][coordinate[1] + PLATFORM_HEIGHT - 1] = 'rectangle-continuation'
+
+    return mosaic_tiles
+
+
 def get_xml_elements_from_mosaic(mosaic_tiles):
     """
     Returns XML elements to generate a Science Birds level.
     """
+    # FIXME Edit this function to account for 'none', 'rectangle-start' and
+    # 'rectangle-continuation' blocks.
     elements = ''
     for column_index, column in enumerate(mosaic_tiles):
         for tile_index, tile in enumerate(column): elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, tile_index * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND)
@@ -66,4 +116,8 @@ def get_xml_elements_from_mosaic(mosaic_tiles):
 
 
 def construct_level(mosaic_tiles):
-    with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(remove_ice_blocks(transpose_and_invert_tiles(mosaic_tiles))))
+    mosaic_tiles = remove_ice_blocks(transpose_and_invert_tiles(mosaic_tiles))
+    platform_coordinates = generate_platform_coordinates(mosaic_tiles)
+    for coordinate in platform_coordinates:
+        mosaic_tiles = insert_platform_into_mosaic(mosaic_tiles, coordinate)
+    with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(mosaic_tiles))

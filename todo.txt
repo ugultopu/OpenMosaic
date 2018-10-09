@@ -1,1 +1,13 @@
 - Convert "science_birds_level_constructor" to a Python class.
+- Shorten the highly explicit variable names and instead add a comment to the
+place that they have been defined in order to describe their purpose.
+
+DONE
+----
+- Right now, the "point" for the platforms (that is, the tile that we take as
+reference of the beginning of the platform) is top-left. However, in order to
+make it consistent with the matrix (that is, list of lists) that contain the
+tiles of the mosaic, making it bottom-left and make it extend towards above and
+right makes more sense.
+- If a platform extends too above, such that it goes over the ceiling of the
+structure, simply insert the required blocks to complete the platform.
