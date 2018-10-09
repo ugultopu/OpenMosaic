@@ -107,11 +107,26 @@ def get_xml_elements_from_mosaic(mosaic_tiles):
     """
     Returns XML elements to generate a Science Birds level.
     """
-    # FIXME Edit this function to account for 'none', 'rectangle-start' and
-    # 'rectangle-continuation' blocks.
     elements = ''
     for column_index, column in enumerate(mosaic_tiles):
-        for tile_index, tile in enumerate(column): elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, tile_index * LENGTH_OF_SQUARE_BLOCK_EDGE + Y_COORDINATE_OF_GROUND)
+        current_height = Y_COORDINATE_OF_GROUND
+        for tile_index, tile in enumerate(column):
+            if 'square_small' in tile:
+                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, current_height)
+                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
+            # FIXME Give the rectangle the same name as in the block image
+            # names to make it unambiguous which rectange it is. Right now,
+            # 'rectangle' means only 'RectBig'. When you allow other types of
+            # rectangles, you will need to fix the following 'elif' clause.
+            elif 'rectangle' in tile:
+                # FIXME Allow rectangle to have different material types apart
+                # from stone.
+                # FIXME Fix the X position of the rectangle.
+                if tile == 'rectangle-start':
+                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, current_height)
+                current_height += HEIGHT_OF_RECTANGLE
+            elif tile == 'none':
+                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
     return elements
 
 
