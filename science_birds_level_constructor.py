@@ -1,4 +1,3 @@
-from math import abs
 from random import randint
 
 LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
@@ -35,7 +34,7 @@ def remove_ice_blocks(mosaic_tiles):
     return [[tile for tile in column if get_block_type(tile) != 'ice'] for column in mosaic_tiles]
 
 
-def platform_intersects_with_existing_platform(new_platform_coordinate, platform_start_coordinates):
+def platform_intersects_with_existing_platforms(new_platform_coordinate, platform_start_coordinates):
     for coordinate in platform_start_coordinates:
         if abs(coordinate[0] - new_platform_coordinate[0]) < PLATFORM_WIDTH and abs(coordinate[1] - new_platform_coordinate[1]) < PLATFORM_HEIGHT:
             return True
@@ -52,7 +51,7 @@ def generate_platform_coordinates(mosaic_tiles):
     while number_of_unsuccessful_attempts_to_get_a_coordinate < 3:
         column_index = randint(0, len(mosaic_tiles) - PLATFORM_WIDTH)
         coordinate = (column_index, randint(0, len(mosaic_tiles[column_index]) - PLATFORM_HEIGHT))
-        if not platform_intersects_with_existing_platform(coordinate, coordinates):
+        if not platform_intersects_with_existing_platforms(coordinate, coordinates):
             coordinates.append(coordinate)
         else:
             number_of_unsuccessful_attempts_to_get_a_coordinate += 1
@@ -98,7 +97,7 @@ def insert_platform_into_mosaic(mosaic_tiles, coordinate):
     # 5) Put 'rectangle-continuation' to the rest of the tiles that the
     # rectangle covers.
     for column_order in range(1, PLATFORM_WIDTH):
-        mosaic_tiles[coordinate[0] + column_order][coordinate[1] + PLATFORM_HEIGHT - 1] = 'rectangle-continuation'
+        mosaic_tiles[coordinate[0] + column_order].insert(coordinate[1] + PLATFORM_HEIGHT - 1, 'rectangle-continuation')
 
     return mosaic_tiles
 
@@ -121,9 +120,8 @@ def get_xml_elements_from_mosaic(mosaic_tiles):
             elif 'rectangle' in tile:
                 # FIXME Allow rectangle to have different material types apart
                 # from stone.
-                # FIXME Fix the X position of the rectangle.
                 if tile == 'rectangle-start':
-                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, current_height)
+                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
                 current_height += HEIGHT_OF_RECTANGLE
             elif tile == 'none':
                 current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
