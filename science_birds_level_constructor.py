@@ -68,36 +68,25 @@ def insert_platform_into_mosaic(mosaic_tiles, coordinate):
     |          |
     ------------
     """
-    # 1) Make sure the floor of the platform is complete.
-    HEIGHT_OF_PLATFORM_FLOOR = coordinate[1] + 1
-    for column_order in range(1, PLATFORM_WIDTH):
+    # 1) Make sure that the height of all columns of the platform are
+    # sufficient.
+    HEIGHT_UNTIL_PLATFORM_CEILING = coordinate[1] + PLATFORM_HEIGHT
+    for column_order in range(PLATFORM_WIDTH):
         column_index = coordinate[0] + column_order
-        while(len(mosaic_tiles[column_index]) < HEIGHT_OF_PLATFORM_FLOOR):
+        while(len(mosaic_tiles[column_index]) < HEIGHT_UNTIL_PLATFORM_CEILING):
             mosaic_tiles[column_index].append('stone_square_small_1')
-    # 2) Construct the walls of the platform if required. Walls are at the
-    # first and the last columns.
-    for column_order in [0, PLATFORM_WIDTH - 1]:
-        column_index = coordinate[0] + column_order
-        while(len(mosaic_tiles[column_index]) < HEIGHT_OF_PLATFORM_FLOOR + PLATFORM_HEIGHT - 2):
-            mosaic_tiles[column_index].append('stone_square_small_1')
-    # 3) Create space in the platform
+    # 2) Replace the tiles in center with 'none' tiles.
     for column_order in range(1, PLATFORM_WIDTH - 1):
         column_index = coordinate[0] + column_order
         for row_order in range(1, PLATFORM_HEIGHT - 1):
             row_index = coordinate[1] + row_order
-            '''
-            This method accounts for going out of bounds of the ceiling.
-            Since we are using 'insert', instead of assignment or something
-            else, this makes sure that even if we go out of bounds, the
-            required element will be appended to the list.
-            '''
-            mosaic_tiles[column_index].insert(row_index, 'none')
-    # 4) Put the rectangle to top-left of the platform.
-    mosaic_tiles[coordinate[0]].insert(coordinate[1] + PLATFORM_HEIGHT - 1, 'rectangle-start')
-    # 5) Put 'rectangle-continuation' to the rest of the tiles that the
-    # rectangle covers.
+            mosaic_tiles[column_index][row_index] = 'none'
+    # 3) Replace the tile on top-left of the platform with 'rectangle-start'
+    # (that is, "RectBig") tile.
+    mosaic_tiles[coordinate[0]][coordinate[1] + PLATFORM_HEIGHT - 1] = 'rectangle-start'
+    # 4) Replace the tiles on top with 'rectangle-continuation tiles'.
     for column_order in range(1, PLATFORM_WIDTH):
-        mosaic_tiles[coordinate[0] + column_order].insert(coordinate[1] + PLATFORM_HEIGHT - 1, 'rectangle-continuation')
+        mosaic_tiles[coordinate[0] + column_order][coordinate[1] + PLATFORM_HEIGHT - 1] = 'rectangle-continuation'
 
     return mosaic_tiles
 
@@ -110,20 +99,29 @@ def get_xml_elements_from_mosaic(mosaic_tiles):
     for column_index, column in enumerate(mosaic_tiles):
         current_height = Y_COORDINATE_OF_GROUND
         for tile_index, tile in enumerate(column):
-            if 'square_small' in tile:
-                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, current_height)
-                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
             # FIXME Give the rectangle the same name as in the block image
             # names to make it unambiguous which rectange it is. Right now,
             # 'rectangle' means only 'RectBig'. When you allow other types of
             # rectangles, you will need to fix the following 'elif' clause.
-            elif 'rectangle' in tile:
+            if tile.startswith('rectangle'):
                 # FIXME Allow rectangle to have different material types apart
                 # from stone.
                 if tile == 'rectangle-start':
                     elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
                 current_height += HEIGHT_OF_RECTANGLE
             elif tile == 'none':
+                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
+            # FIXME The mosaic generator generates all kinds of blocks (square,
+            # triangle, rectangle, etc.). However, we actually need to convert
+            # all of these blocks to "SquareSmall" before making any operations
+            # on mosaic tiles. However, to save time, I didn't write the
+            # conversion function yet. In this 'else' clause, I say that if a
+            # tile is not a rectangle or "none", than it should be a square.
+            #
+            # I need to convert the tiles in the future to prevent possible
+            # bugs.
+            else:
+                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, current_height)
                 current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
     return elements
 
