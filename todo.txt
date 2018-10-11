@@ -11,3 +11,5 @@ tiles of the mosaic, making it bottom-left and make it extend towards above and
 right makes more sense.
 - If a platform extends too above, such that it goes over the ceiling of the
 structure, simply insert the required blocks to complete the platform.
+- To fix the instability problem, your best bet seems to be to hold a variable
+to remember the X distance from the origin as well. Implement this.

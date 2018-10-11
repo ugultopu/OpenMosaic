@@ -3,7 +3,7 @@ from random import randint
 LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
 WIDTH_OF_RECTANGLE = 2.06
 HEIGHT_OF_RECTANGLE = 0.22
-NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM = 5
+NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM = 4
 PLATFORM_WIDTH = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
 PLATFORM_HEIGHT = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
 Y_COORDINATE_OF_GROUND = -3.5
@@ -55,6 +55,8 @@ def generate_platform_coordinates(mosaic_tiles):
             coordinates.append(coordinate)
         else:
             number_of_unsuccessful_attempts_to_get_a_coordinate += 1
+    # Sort coordinates ascending w.r.t X coordinate.
+    coordinates.sort(key = lambda coordinate: coordinate[0])
     return coordinates
 
 
@@ -68,6 +70,11 @@ def insert_platform_into_mosaic(mosaic_tiles, coordinate):
     |          |
     ------------
     """
+    # FIXME It seems like the possibly extra columns are not added to the end
+    # of mosaic_tiles. Need to check it out how this is possible without
+    # getting an "IndexError: list index out of range" error. Realized this by
+    # print out the phases of "get_column_X_distances".
+
     # 1) Make sure that the height of all columns of the platform are
     # sufficient.
     HEIGHT_UNTIL_PLATFORM_CEILING = coordinate[1] + PLATFORM_HEIGHT
@@ -91,7 +98,29 @@ def insert_platform_into_mosaic(mosaic_tiles, coordinate):
     return mosaic_tiles
 
 
-def get_xml_elements_from_mosaic(mosaic_tiles):
+def get_column_X_distances(mosaic_tiles, platform_coordinates):
+    """
+    Compute the X distances from origin of column starting points, taking into
+    account of the extra space covered by rectangle blocks on top of platforms.
+    """
+    x_distances = []
+    for column_index, column in enumerate(mosaic_tiles):
+        distance = column_index * LENGTH_OF_SQUARE_BLOCK_EDGE
+        print 'platform coordinates are:'
+        print platform_coordinates
+        if column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
+            distance += WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE
+            # The following while loop accounts for having multiple platforms
+            # starting at the same column.
+            while column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
+                del platform_coordinates[0]
+        x_distances.append(distance)
+
+    return x_distances
+
+
+
+def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
     """
     Returns XML elements to generate a Science Birds level.
     """
@@ -107,7 +136,7 @@ def get_xml_elements_from_mosaic(mosaic_tiles):
                 # FIXME Allow rectangle to have different material types apart
                 # from stone.
                 if tile == 'rectangle-start':
-                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
+                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_x_distances[column_index] - WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
                 current_height += HEIGHT_OF_RECTANGLE
             elif tile == 'none':
                 current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
@@ -121,7 +150,7 @@ def get_xml_elements_from_mosaic(mosaic_tiles):
             # I need to convert the tiles in the future to prevent possible
             # bugs.
             else:
-                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE, current_height)
+                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_x_distances[column_index], current_height)
                 current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
     return elements
 
@@ -131,4 +160,5 @@ def construct_level(mosaic_tiles):
     platform_coordinates = generate_platform_coordinates(mosaic_tiles)
     for coordinate in platform_coordinates:
         mosaic_tiles = insert_platform_into_mosaic(mosaic_tiles, coordinate)
-    with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(mosaic_tiles))
+    column_x_distances = get_column_X_distances(mosaic_tiles, platform_coordinates)
+    with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances))
