@@ -49,6 +49,14 @@ def generate_platform_coordinates(mosaic_tiles):
     number_of_unsuccessful_attempts_to_get_a_coordinate = 0
     coordinates = []
     while number_of_unsuccessful_attempts_to_get_a_coordinate < 3:
+        # FIXME Actually, making sure that the platform is within the boundaries
+        # of the structure is kind of unnecessary, since in
+        # 'insert_platform_into_mosaic', we make sure that the platform has
+        # high enough floor and it extends high enough to the ceiling. The only
+        # advantage of making sure that the platform is within the boundaries
+        # of the structure is not getting "IndexError: list index out of range"
+        # error while adding a new column in 'insert_platform_into_mosaic'
+        # function.
         column_index = randint(0, len(mosaic_tiles) - PLATFORM_WIDTH)
         coordinate = (column_index, randint(0, len(mosaic_tiles[column_index]) - PLATFORM_HEIGHT))
         if not platform_intersects_with_existing_platforms(coordinate, coordinates):
@@ -70,11 +78,6 @@ def insert_platform_into_mosaic(mosaic_tiles, coordinate):
     |          |
     ------------
     """
-    # FIXME It seems like the possibly extra columns are not added to the end
-    # of mosaic_tiles. Need to check it out how this is possible without
-    # getting an "IndexError: list index out of range" error. Realized this by
-    # print out the phases of "get_column_X_distances".
-
     # 1) Make sure that the height of all columns of the platform are
     # sufficient.
     HEIGHT_UNTIL_PLATFORM_CEILING = coordinate[1] + PLATFORM_HEIGHT
@@ -104,15 +107,15 @@ def get_column_X_distances(mosaic_tiles, platform_coordinates):
     account of the extra space covered by rectangle blocks on top of platforms.
     """
     x_distances = []
-    for column_index, column in enumerate(mosaic_tiles):
+    for column_index in range(len(mosaic_tiles)):
         distance = column_index * LENGTH_OF_SQUARE_BLOCK_EDGE
         print 'platform coordinates are:'
         print platform_coordinates
-        if column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
+        if len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
             distance += WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE
             # The following while loop accounts for having multiple platforms
             # starting at the same column.
-            while column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
+            while len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
                 del platform_coordinates[0]
         x_distances.append(distance)
 
