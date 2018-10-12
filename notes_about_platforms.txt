@@ -1,3 +1,6 @@
+Blocks are inserted from their centroids, not from their bottom-left points.
+Hence, you must do your calculations w.r.t this.
+
 Each platform will be 5x5. The top 5th will be the horizontal rectangle, the
 borders will be small squares and the center will be empty.
 

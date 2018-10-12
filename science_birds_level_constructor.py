@@ -1,3 +1,4 @@
+import logging as log
 from random import randint
 
 LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
@@ -23,7 +24,7 @@ def get_block_type(block_name):
     if block_name.startswith('ice'): return 'ice'
     elif block_name.startswith('wood'): return 'wood'
     elif block_name.startswith('stone'): return 'stone'
-    else: raise ValueError('Unknown block type for block "{}"'.format(block_name))
+    else: log.warning('Unknown block type for block "{}"'.format(block_name))
 
 
 def remove_ice_blocks(mosaic_tiles):
@@ -109,8 +110,6 @@ def get_column_X_distances(mosaic_tiles, platform_coordinates):
     x_distances = []
     for column_index in range(len(mosaic_tiles)):
         distance = column_index * LENGTH_OF_SQUARE_BLOCK_EDGE
-        print 'platform coordinates are:'
-        print platform_coordinates
         if len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
             distance += WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE
             # The following while loop accounts for having multiple platforms
@@ -129,7 +128,7 @@ def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
     """
     elements = ''
     for column_index, column in enumerate(mosaic_tiles):
-        current_height = Y_COORDINATE_OF_GROUND
+        current_height = Y_COORDINATE_OF_GROUND + LENGTH_OF_SQUARE_BLOCK_EDGE / 2
         for tile_index, tile in enumerate(column):
             # FIXME Give the rectangle the same name as in the block image
             # names to make it unambiguous which rectange it is. Right now,
@@ -158,10 +157,21 @@ def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
     return elements
 
 
-def construct_level(mosaic_tiles):
+def construct_level(mosaic_tiles, platform_coordinates=None):
     mosaic_tiles = remove_ice_blocks(transpose_and_invert_tiles(mosaic_tiles))
-    platform_coordinates = generate_platform_coordinates(mosaic_tiles)
-    for coordinate in platform_coordinates:
-        mosaic_tiles = insert_platform_into_mosaic(mosaic_tiles, coordinate)
+    if platform_coordinates is None:
+        platform_coordinates = generate_platform_coordinates(mosaic_tiles)
+        for coordinate in platform_coordinates:
+            mosaic_tiles = insert_platform_into_mosaic(mosaic_tiles, coordinate)
     column_x_distances = get_column_X_distances(mosaic_tiles, platform_coordinates)
     with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances))
+
+
+if __name__ == '__main__':
+    test_mosaic_tiles =  [
+                           ['rectangle-start','rectangle-continuation','rectangle-continuation','rectangle-continuation'],
+                           ['stone_square'   ,'none'                  ,'none'                  ,'stone_square'],
+                           ['stone_square'   ,'none'                  ,'none'                  ,'stone_square'],
+                           ['stone_square'   ,'stone_square'          ,'stone_square'          ,'stone_square']
+                         ]
+    construct_level(test_mosaic_tiles, [(0,0)])
