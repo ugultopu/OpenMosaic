@@ -4,7 +4,7 @@ from random import randint
 LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
 WIDTH_OF_RECTANGLE = 2.06
 HEIGHT_OF_RECTANGLE = 0.22
-NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM = 4
+NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM = 5
 PLATFORM_WIDTH = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
 PLATFORM_HEIGHT = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
 Y_COORDINATE_OF_GROUND = -3.5
@@ -128,7 +128,7 @@ def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
     """
     elements = ''
     for column_index, column in enumerate(mosaic_tiles):
-        current_height = Y_COORDINATE_OF_GROUND + LENGTH_OF_SQUARE_BLOCK_EDGE / 2
+        current_height = Y_COORDINATE_OF_GROUND
         for tile_index, tile in enumerate(column):
             # FIXME Give the rectangle the same name as in the block image
             # names to make it unambiguous which rectange it is. Right now,
@@ -137,9 +137,10 @@ def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
             if tile.startswith('rectangle'):
                 # FIXME Allow rectangle to have different material types apart
                 # from stone.
+                current_height += HEIGHT_OF_RECTANGLE / 2
                 if tile == 'rectangle-start':
-                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_x_distances[column_index] - WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
-                current_height += HEIGHT_OF_RECTANGLE
+                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM * LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
+                current_height += HEIGHT_OF_RECTANGLE / 2
             elif tile == 'none':
                 current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
             # FIXME The mosaic generator generates all kinds of blocks (square,
@@ -152,8 +153,9 @@ def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
             # I need to convert the tiles in the future to prevent possible
             # bugs.
             else:
-                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_x_distances[column_index], current_height)
-                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
+                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE / 2
+                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
+                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE / 2
     return elements
 
 
