@@ -102,21 +102,26 @@ def insert_platform_into_mosaic(mosaic_tiles, coordinate):
     return mosaic_tiles
 
 
+# FIXME This won't work. For example, a 4 by 4 platform starts at (0,0) and
+# another one starts at (1,4). The ending of (1,4)'s rectangle will not fit
+# perfectly since the 5th column (column index 4) will start a bit further than
+# where it should start normally. So, I need to find a solution for this.
 def get_column_X_distances(mosaic_tiles, platform_coordinates):
     """
     Compute the X distances from origin of column starting points, taking into
     account of the extra space covered by rectangle blocks on top of platforms.
     """
     x_distances = []
+    current_distance = -LENGTH_OF_SQUARE_BLOCK_EDGE
     for column_index in range(len(mosaic_tiles)):
-        distance = column_index * LENGTH_OF_SQUARE_BLOCK_EDGE
+        current_distance += LENGTH_OF_SQUARE_BLOCK_EDGE
         if len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
-            distance += WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE
+            current_distance += WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE
             # The following while loop accounts for having multiple platforms
             # starting at the same column.
             while len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
                 del platform_coordinates[0]
-        x_distances.append(distance)
+        x_distances.append(current_distance)
 
     return x_distances
 
