@@ -55,7 +55,7 @@ def processLine(i, w, index, inputImage, tileSize, channels, mosaic_tiles):
         patch = preparePatch(index_image, tileSize)
         inputImage[i * tileSize:(i + 1) * tileSize, j * tileSize:(j + 1) * tileSize] = patch
         cv2.imshow("Progress", inputImage)
-        cv2.waitKey(1)
+        # cv2.waitKey(1)
 
 
 def main():
