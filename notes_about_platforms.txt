@@ -1,3 +1,14 @@
+One of the reasons for the instability of the platforms is the following: When
+we add a platform, the platform's ceiling has the rectangle tile, instead of
+the square tile. Rectangle tile and square tile have different heights.
+Hence, after the rectangle tile, an inequality between the height of the
+square platform and adjacent columns starts. That is, after a platform, the
+height of Nth tile in a column containing a platform and the height of Nth
+tile in a column that does not contain a platform are not equal (that is, Nth
+tiles in different columns are not at the same height). If another platform has
+both such columns within its range, then that platform won't be parallel to
+ground. This is one of the reasons for platform instability.
+
 Blocks are inserted from their centroids, not from their bottom-left points.
 Hence, you must do your calculations w.r.t this.
 
