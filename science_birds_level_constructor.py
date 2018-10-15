@@ -1,6 +1,6 @@
 import logging as log
 from bisect import bisect_left
-from random import sample
+from random import randint, sample
 
 SQUARE_DIMENSION = 0.43
 RECTANGLE_WIDTH = 2.06
@@ -68,14 +68,42 @@ def get_xml_elements_for_square_blocks(mosaic, platforms):
     return elements
 
 
+def get_rectangle_start_distance(mosaic, index):
+    """
+    Get the X distance for rectangle start.
+    """
+    STRUCTURE_WIDTH = SQUARE_DIMENSION * len(mosaic)
+    NUMBER_OF_RECTANGLES = int(STRUCTURE_WIDTH / RECTANGLE_WIDTH) + 1
+    return -(NUMBER_OF_RECTANGLES * RECTANGLE_WIDTH - STRUCTURE_WIDTH) / 2 + index * RECTANGLE_WIDTH
+
+
 def get_xml_elements_for_rectangle_blocks(mosaic, platforms):
-    PLATFORM_WIDTH = SQUARE_DIMENSION * len(mosaic)
-    NUMBER_OF_RECTANGLES = int(PLATFORM_WIDTH / RECTANGLE_WIDTH) + 1
+    STRUCTURE_WIDTH = SQUARE_DIMENSION * len(mosaic)
+    NUMBER_OF_RECTANGLES = int(STRUCTURE_WIDTH / RECTANGLE_WIDTH) + 1
     elements = ''
     for platform in platforms:
         for index in range(NUMBER_OF_RECTANGLES):
-            elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', -(NUMBER_OF_RECTANGLES * RECTANGLE_WIDTH - PLATFORM_WIDTH) / 2 + index * RECTANGLE_WIDTH + RECTANGLE_WIDTH / 2, get_height_for_block(platform, platforms) + RECTANGLE_HEIGHT / 2)
+            elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', get_rectangle_start_distance(mosaic, index) + RECTANGLE_WIDTH / 2, get_height_for_block(platform, platforms) + RECTANGLE_HEIGHT / 2)
     return elements
+
+
+def get_square_index_for_gaps(mosaic):
+    STRUCTURE_WIDTH = SQUARE_DIMENSION * len(mosaic)
+    NUMBER_OF_RECTANGLES = int(STRUCTURE_WIDTH / RECTANGLE_WIDTH) + 1
+    rectangle_index = randint(1, NUMBER_OF_RECTANGLES - 2)
+    square_index = get_rectangle_start_distance(mosaic, rectangle_index) / SQUARE_DIMENSION
+    return int(square_index) + 1
+
+
+def insert_gaps(mosaic, platforms):
+    column_index = get_square_index_for_gaps(mosaic)
+    for row_index in range(platforms[0] + 1, platforms[1]):
+        # TODO Insert the gaps into the middle of the rectangle. Compute the
+        # middle programatically. That is, compute those "+1" and "+2"
+        # programatically, instead of hard-coding them.
+        mosaic[column_index + 1][row_index] = 'none'
+        mosaic[column_index + 2][row_index] = 'none'
+    return mosaic
 
 
 def construct_level(mosaic, platforms=None):
@@ -83,6 +111,7 @@ def construct_level(mosaic, platforms=None):
     if platforms is None:
         platforms = generate_platforms(mosaic)
     insert_platforms_into_mosaic(mosaic, platforms)
+    insert_gaps(mosaic, platforms)
     square_elements = get_xml_elements_for_square_blocks(mosaic, platforms)
     rectangle_elements = get_xml_elements_for_rectangle_blocks(mosaic, platforms)
     with open('blocks.xml', 'w') as f: f.write(square_elements + rectangle_elements)
@@ -90,10 +119,10 @@ def construct_level(mosaic, platforms=None):
 
 if __name__ == '__main__':
     test_mosaic = [
-                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
-                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
-                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
-                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
-                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square']
+                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
+                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
+                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
+                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
+                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square']
                   ]
     construct_level(test_mosaic, [1,3])
