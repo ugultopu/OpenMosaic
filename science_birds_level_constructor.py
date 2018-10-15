@@ -1,23 +1,23 @@
 import logging as log
-from random import randint
+from bisect import bisect_left
+from random import sample
 
-LENGTH_OF_SQUARE_BLOCK_EDGE = 0.43
-WIDTH_OF_RECTANGLE = 2.06
-HEIGHT_OF_RECTANGLE = 0.22
-NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM = 5
-PLATFORM_WIDTH = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
-PLATFORM_HEIGHT = NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM
-Y_COORDINATE_OF_GROUND = -3.5
+SQUARE_DIMENSION = 0.43
+RECTANGLE_WIDTH = 2.06
+RECTANGLE_HEIGHT = 0.22
+GROUND_HEIGHT = -3.5
+# Ratio of number of platforms over total height of the shortest column.
+PLATFORM_RATIO = .3
 
 
-def transpose_and_invert_tiles(mosaic_tiles):
+def transpose_and_invert_tiles(mosaic):
     """
     The mosaic tiles start from top-left and go towards bottom-right. This is
     not practical when constructing a Science Birds level. We want to start
     from bottom-left and go towards top-right. Hence, we transpose and invert
     mosaic tiles.
     """
-    return [column[::-1] for column in map(list, zip(*mosaic_tiles))]
+    return [column[::-1] for column in map(list, zip(*mosaic))]
 
 
 def get_block_type(block_name):
@@ -27,157 +27,73 @@ def get_block_type(block_name):
     else: log.warning('Unknown block type for block "{}"'.format(block_name))
 
 
-def remove_ice_blocks(mosaic_tiles):
+def remove_ice_blocks(mosaic):
     """
     Since ice blocks usually represent whitespace (i.e, background), we want to
     remove them.
     """
-    return [[tile for tile in column if get_block_type(tile) != 'ice'] for column in mosaic_tiles]
+    return [[tile for tile in column if get_block_type(tile) != 'ice'] for column in mosaic]
 
 
-def platform_intersects_with_existing_platforms(new_platform_coordinate, platform_start_coordinates):
-    for coordinate in platform_start_coordinates:
-        if abs(coordinate[0] - new_platform_coordinate[0]) < PLATFORM_WIDTH and abs(coordinate[1] - new_platform_coordinate[1]) < PLATFORM_HEIGHT:
-            return True
-    return False
+def generate_platforms(mosaic):
+    SHORTEST_COLUMN_HEIGHT = len(min(mosaic, key=lambda column: len(column)))
+    return sorted(sample(range(SHORTEST_COLUMN_HEIGHT), int(PLATFORM_RATIO * SHORTEST_COLUMN_HEIGHT)))
 
 
-def generate_platform_coordinates(mosaic_tiles):
+def insert_platforms_into_mosaic(mosaic, platforms):
+    for platform in platforms:
+        for column in mosaic:
+            column[platform] = 'platform'
+    return mosaic
+
+
+def get_height_for_block(row, platforms):
     """
-    Returns a list of coordinates that indicate the starting point of the
-    platforms.
+    Assumes the "platforms" are sorted and the blocks in "platforms" have been
+    placed in "mosaic".
     """
-    number_of_unsuccessful_attempts_to_get_a_coordinate = 0
-    coordinates = []
-    while number_of_unsuccessful_attempts_to_get_a_coordinate < 3:
-        # FIXME Actually, making sure that the platform is within the boundaries
-        # of the structure is kind of unnecessary, since in
-        # 'insert_platform_into_mosaic', we make sure that the platform has
-        # high enough floor and it extends high enough to the ceiling. The only
-        # advantage of making sure that the platform is within the boundaries
-        # of the structure is not getting "IndexError: list index out of range"
-        # error while adding a new column in 'insert_platform_into_mosaic'
-        # function.
-        column_index = randint(0, len(mosaic_tiles) - PLATFORM_WIDTH)
-        coordinate = (column_index, randint(0, len(mosaic_tiles[column_index]) - PLATFORM_HEIGHT))
-        if not platform_intersects_with_existing_platforms(coordinate, coordinates):
-            coordinates.append(coordinate)
-        else:
-            number_of_unsuccessful_attempts_to_get_a_coordinate += 1
-    # Sort coordinates ascending w.r.t X coordinate.
-    coordinates.sort(key = lambda coordinate: coordinate[0])
-    return coordinates
+    NUMBER_OF_PLATFORMS = bisect_left(platforms, row)
+    return GROUND_HEIGHT + (row - NUMBER_OF_PLATFORMS) * SQUARE_DIMENSION + NUMBER_OF_PLATFORMS * RECTANGLE_HEIGHT
 
 
-def insert_platform_into_mosaic(mosaic_tiles, coordinate):
-    """
-    Insert a platform like the following to the structure:
-    ------------
-    |          |
-    |          |
-    |          |
-    |          |
-    ------------
-    """
-    # 1) Make sure that the height of all columns of the platform are
-    # sufficient.
-    HEIGHT_UNTIL_PLATFORM_CEILING = coordinate[1] + PLATFORM_HEIGHT
-    for column_order in range(PLATFORM_WIDTH):
-        column_index = coordinate[0] + column_order
-        while(len(mosaic_tiles[column_index]) < HEIGHT_UNTIL_PLATFORM_CEILING):
-            mosaic_tiles[column_index].append('stone_square_small_1')
-    # 2) Replace the tiles in center with 'none' tiles.
-    for column_order in range(1, PLATFORM_WIDTH - 1):
-        column_index = coordinate[0] + column_order
-        for row_order in range(1, PLATFORM_HEIGHT - 1):
-            row_index = coordinate[1] + row_order
-            mosaic_tiles[column_index][row_index] = 'none'
-    # 3) Replace the tile on top-left of the platform with 'rectangle-start'
-    # (that is, "RectBig") tile.
-    mosaic_tiles[coordinate[0]][coordinate[1] + PLATFORM_HEIGHT - 1] = 'rectangle-start'
-    # 4) Replace the tiles on top with 'rectangle-continuation tiles'.
-    for column_order in range(1, PLATFORM_WIDTH):
-        mosaic_tiles[coordinate[0] + column_order][coordinate[1] + PLATFORM_HEIGHT - 1] = 'rectangle-continuation'
-
-    return mosaic_tiles
-
-
-# FIXME This won't work. For example, a 4 by 4 platform starts at (0,0) and
-# another one starts at (1,4). The ending of (1,4)'s rectangle will not fit
-# perfectly since the 5th column (column index 4) will start a bit further than
-# where it should start normally. So, I need to find a solution for this.
-def get_column_X_distances(mosaic_tiles, platform_coordinates):
-    """
-    Compute the X distances from origin of column starting points, taking into
-    account of the extra space covered by rectangle blocks on top of platforms.
-    """
-    x_distances = []
-    current_distance = -LENGTH_OF_SQUARE_BLOCK_EDGE
-    for column_index in range(len(mosaic_tiles)):
-        current_distance += LENGTH_OF_SQUARE_BLOCK_EDGE
-        if len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
-            current_distance += WIDTH_OF_RECTANGLE % LENGTH_OF_SQUARE_BLOCK_EDGE
-            # The following while loop accounts for having multiple platforms
-            # starting at the same column.
-            while len(platform_coordinates) > 0 and column_index - PLATFORM_WIDTH == platform_coordinates[0][0]:
-                del platform_coordinates[0]
-        x_distances.append(current_distance)
-
-    return x_distances
-
-
-def get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances):
+def get_xml_elements_for_square_blocks(mosaic, platforms):
     """
     Returns XML elements to generate a Science Birds level.
     """
     elements = ''
-    for column_index, column in enumerate(mosaic_tiles):
-        current_height = Y_COORDINATE_OF_GROUND
+    for column_index, column in enumerate(mosaic):
         for tile_index, tile in enumerate(column):
-            # FIXME Give the rectangle the same name as in the block image
-            # names to make it unambiguous which rectange it is. Right now,
-            # 'rectangle' means only 'RectBig'. When you allow other types of
-            # rectangles, you will need to fix the following 'elif' clause.
-            if tile.startswith('rectangle'):
-                # FIXME Allow rectangle to have different material types apart
-                # from stone.
-                current_height += HEIGHT_OF_RECTANGLE / 2
-                if tile == 'rectangle-start':
-                    elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + NUMBER_OF_TILES_PER_EDGE_OF_SQUARE_PLATFORM * LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
-                current_height += HEIGHT_OF_RECTANGLE / 2
-            elif tile == 'none':
-                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE
-            # FIXME The mosaic generator generates all kinds of blocks (square,
-            # triangle, rectangle, etc.). However, we actually need to convert
-            # all of these blocks to "SquareSmall" before making any operations
-            # on mosaic tiles. However, to save time, I didn't write the
-            # conversion function yet. In this 'else' clause, I say that if a
-            # tile is not a rectangle or "none", than it should be a square.
-            #
-            # I need to convert the tiles in the future to prevent possible
-            # bugs.
-            else:
-                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE / 2
-                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * LENGTH_OF_SQUARE_BLOCK_EDGE + LENGTH_OF_SQUARE_BLOCK_EDGE / 2, current_height)
-                current_height += LENGTH_OF_SQUARE_BLOCK_EDGE / 2
+            if tile != 'platform' and tile != 'none':
+                elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(tile), column_index * SQUARE_DIMENSION + SQUARE_DIMENSION / 2, get_height_for_block(tile_index, platforms) + SQUARE_DIMENSION / 2)
     return elements
 
 
-def construct_level(mosaic_tiles, platform_coordinates=None):
-    mosaic_tiles = remove_ice_blocks(transpose_and_invert_tiles(mosaic_tiles))
-    if platform_coordinates is None:
-        platform_coordinates = generate_platform_coordinates(mosaic_tiles)
-        for coordinate in platform_coordinates:
-            mosaic_tiles = insert_platform_into_mosaic(mosaic_tiles, coordinate)
-    column_x_distances = get_column_X_distances(mosaic_tiles, platform_coordinates)
-    with open('blocks.xml', 'w') as f: f.write(get_xml_elements_from_mosaic(mosaic_tiles, column_x_distances))
+def get_xml_elements_for_rectangle_blocks(mosaic, platforms):
+    PLATFORM_WIDTH = SQUARE_DIMENSION * len(mosaic)
+    NUMBER_OF_RECTANGLES = int(PLATFORM_WIDTH / RECTANGLE_WIDTH) + 1
+    elements = ''
+    for platform in platforms:
+        for index in range(NUMBER_OF_RECTANGLES):
+            elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', -(NUMBER_OF_RECTANGLES * RECTANGLE_WIDTH - PLATFORM_WIDTH) / 2 + index * RECTANGLE_WIDTH + RECTANGLE_WIDTH / 2, get_height_for_block(platform, platforms) + RECTANGLE_HEIGHT / 2)
+    return elements
+
+
+def construct_level(mosaic, platforms=None):
+    mosaic = remove_ice_blocks(transpose_and_invert_tiles(mosaic))
+    if platforms is None:
+        platforms = generate_platforms(mosaic)
+    insert_platforms_into_mosaic(mosaic, platforms)
+    square_elements = get_xml_elements_for_square_blocks(mosaic, platforms)
+    rectangle_elements = get_xml_elements_for_rectangle_blocks(mosaic, platforms)
+    with open('blocks.xml', 'w') as f: f.write(square_elements + rectangle_elements)
 
 
 if __name__ == '__main__':
-    test_mosaic_tiles_with_skewed_platform = [
-                                               ['rectangle-start','rectangle-continuation','rectangle-continuation','rectangle-continuation','rectangle-start','rectangle-continuation','rectangle-continuation','rectangle-continuation'],
-                                               ['stone_square'   ,'none'                  ,'none'                  ,'stone_square'          ,'stone_square'   ,'none'                  ,'none'                  ,'stone_square'],
-                                               ['stone_square'   ,'none'                  ,'none'                  ,'stone_square'          ,'stone_square'   ,'none'                  ,'none'                  ,'stone_square'],
-                                               ['stone_square'   ,'stone_square'          ,'stone_square'          ,'stone_square'          ,'stone_square'   ,'stone_square'          ,'stone_square'          ,'stone_square']
-                                             ]
-    construct_level(test_mosaic_tiles_with_skewed_platform, [(0,0),(4,0)])
+    test_mosaic = [
+                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
+                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
+                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
+                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
+                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square']
+                  ]
+    construct_level(test_mosaic, [1,3])
