@@ -3,6 +3,12 @@ from bisect import bisect_left
 from random import randrange, sample
 
 
+def get_center_indices_for_rectangle(rectangle_width, square_dimension):
+    SQUARES_COVERED_BY_RECTANGLE = int(rectangle_width / square_dimension) + 1 + 1 if rectangle_width % square_dimension != 0 else 0
+    CENTER = int(SQUARES_COVERED_BY_RECTANGLE / 2)
+    return [CENTER] if SQUARES_COVERED_BY_RECTANGLE % 2 == 1 else [CENTER - 1, CENTER]
+
+
 def transpose_and_invert_blocks(blocks):
     """
     The blocks blocks start from top-left and go towards bottom-right. This is
@@ -26,12 +32,6 @@ def remove_ice_blocks(blocks):
     remove them.
     """
     return [[block for block in column if get_block_type(block) != 'ice'] for column in blocks]
-
-
-def get_center_indices_for_rectangle(rectangle_width, square_dimension):
-    SQUARES_COVERED_BY_RECTANGLE = int(rectangle_width / square_dimension) + 1 + 1 if rectangle_width % square_dimension != 0 else 0
-    CENTER = int(SQUARES_COVERED_BY_RECTANGLE / 2)
-    return [CENTER] if SQUARES_COVERED_BY_RECTANGLE % 2 == 1 else [CENTER - 1, CENTER]
 
 
 class Structure:
@@ -75,40 +75,11 @@ class Structure:
                 column[platform] = 'platform'
 
 
-    def get_xml_elements_for_square_blocks(self):
-        """
-        Returns XML elements to generate a Science Birds level.
-        """
-        elements = ''
-        for column_index, column in enumerate(self.blocks):
-            for block_index, block in enumerate(column):
-                if block != 'platform' and block != 'none':
-                    elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.SQUARE_DIMENSION + self.SQUARE_DIMENSION / 2, self.get_height_of_block(block_index) + self.SQUARE_DIMENSION / 2)
-        return elements
-
-
     def get_rectangle_start_distance(self, index):
         """
-        Get the X distance for rectangle start.
+        Get X distance for the start point of the rectangle at the given index.
         """
         return -(self.NUMBER_OF_RECTANGLES * self.RECTANGLE_WIDTH - self.STRUCTURE_WIDTH) / 2 + index * self.RECTANGLE_WIDTH
-
-
-    def get_height_of_block(self, row):
-        """
-        Assumes the "platforms" are sorted and the blocks in "platforms" have
-        been placed in "blocks".
-        """
-        NUMBER_OF_PLATFORMS = bisect_left(self.platforms, row)
-        return self.GROUND_HEIGHT + (row - NUMBER_OF_PLATFORMS) * self.SQUARE_DIMENSION + NUMBER_OF_PLATFORMS * self.RECTANGLE_HEIGHT
-
-
-    def get_xml_elements_for_rectangle_blocks(self):
-        elements = ''
-        for platform in self.platforms:
-            for index in range(self.NUMBER_OF_RECTANGLES):
-                elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', self.get_rectangle_start_distance(index) + self.RECTANGLE_WIDTH / 2, self.get_height_of_block(platform) + self.RECTANGLE_HEIGHT / 2)
-        return elements
 
 
     def get_column_index_for_gaps(self):
@@ -122,6 +93,35 @@ class Structure:
             if self.blocks[column][row] != 'platform':
                 for center in self.CENTER_INDICES_OF_RECTANGLE:
                     self.blocks[column + center][row] = 'none'
+
+
+    def get_height_of_block(self, row):
+        """
+        Assumes the "platforms" are sorted and the blocks in "platforms" have
+        been placed in "blocks".
+        """
+        NUMBER_OF_PLATFORMS = bisect_left(self.platforms, row)
+        return self.GROUND_HEIGHT + (row - NUMBER_OF_PLATFORMS) * self.SQUARE_DIMENSION + NUMBER_OF_PLATFORMS * self.RECTANGLE_HEIGHT
+
+
+    def get_xml_elements_for_square_blocks(self):
+        """
+        Returns XML elements to generate a Science Birds level.
+        """
+        elements = ''
+        for column_index, column in enumerate(self.blocks):
+            for block_index, block in enumerate(column):
+                if block != 'platform' and block != 'none':
+                    elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.SQUARE_DIMENSION + self.SQUARE_DIMENSION / 2, self.get_height_of_block(block_index) + self.SQUARE_DIMENSION / 2)
+        return elements
+
+
+    def get_xml_elements_for_rectangle_blocks(self):
+        elements = ''
+        for platform in self.platforms:
+            for index in range(self.NUMBER_OF_RECTANGLES):
+                elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', self.get_rectangle_start_distance(index) + self.RECTANGLE_WIDTH / 2, self.get_height_of_block(platform) + self.RECTANGLE_HEIGHT / 2)
+        return elements
 
 
     def construct_level(self):
