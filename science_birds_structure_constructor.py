@@ -58,6 +58,7 @@ class Structure:
         self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
         self.STRUCTURE_WIDTH = self.SQUARE_DIMENSION * len(self.blocks)
         self.NUMBER_OF_RECTANGLES = int(self.STRUCTURE_WIDTH / self.RECTANGLE_WIDTH) + 1
+        self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=lambda column: len(column)))
         if platforms is None:
             platforms = self.generate_platforms()
             self.insert_platforms(platforms)
@@ -65,8 +66,7 @@ class Structure:
 
 
     def generate_platforms(self):
-        SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=lambda column: len(column)))
-        return sorted(sample(range(SHORTEST_COLUMN_HEIGHT), int(self.PLATFORM_RATIO * SHORTEST_COLUMN_HEIGHT)))
+        return sorted(sample(range(self.SHORTEST_COLUMN_HEIGHT), int(self.PLATFORM_RATIO * self.SHORTEST_COLUMN_HEIGHT)))
 
 
     def insert_platforms(self, platforms):
@@ -117,17 +117,17 @@ class Structure:
         return int(column_index)
 
 
-    def insert_gaps(self):
-        column_index = self.get_column_index_for_gaps()
-        # TODO Place the gaps in between other platforms too instead of always
-        # placing them between the first and the second platform.
-        for row_index in range(self.platforms[0] + 1, self.platforms[1]):
-            for center_index in self.CENTER_INDICES_OF_RECTANGLE:
-                self.blocks[column_index + center_index][row_index] = 'none'
+    def insert_gaps_until_top_platform(self, column):
+        for row in range(self.platforms[-1]):
+            if self.blocks[column][row] != 'platform':
+                for center in self.CENTER_INDICES_OF_RECTANGLE:
+                    self.blocks[column + center][row] = 'none'
 
 
     def construct_level(self):
-        self.insert_gaps()
+        # TODO Call "insert_gaps_until_top_platform" in a loop to insert gaps to
+        # more columns.
+        self.insert_gaps_until_top_platform(self.get_column_index_for_gaps())
         square_elements = self.get_xml_elements_for_square_blocks()
         rectangle_elements = self.get_xml_elements_for_rectangle_blocks()
         with open('blocks.xml', 'w') as f: f.write(square_elements + rectangle_elements)
