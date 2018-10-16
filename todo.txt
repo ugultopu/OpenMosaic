@@ -1,6 +1,3 @@
-- Convert "science_birds_level_constructor" to a Python class.
-- You use "tile" and "block" to refer to the same thing. Unify these.
-
 DONE
 ----
 - Right now, the "point" for the platforms (that is, the tile that we take as
@@ -14,3 +11,5 @@ structure, simply insert the required blocks to complete the platform.
 to remember the X distance from the origin as well. Implement this.
 - Shorten the highly explicit variable names and instead add a comment to the
 place that they have been defined in order to describe their purpose.
+- Convert "science_birds_level_constructor" to a Python class.
+- You use "tile" and "block" to refer to the same thing. Unify these.

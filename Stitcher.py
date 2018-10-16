@@ -5,7 +5,7 @@ import math
 import sys
 import features
 import random
-from science_birds_level_constructor import construct_level
+from science_birds_structure_constructor import Structure
 from collections import deque
 
 INDEX_PATH = "./index/"
@@ -86,7 +86,7 @@ def main():
 
     print "Finished processing of image"
 
-    construct_level(mosaic_tiles)
+    Structure(mosaic_tiles).construct_level()
 
     cv2.imwrite(str(sys.argv[4]), inputImage)
 
