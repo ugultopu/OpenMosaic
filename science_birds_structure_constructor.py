@@ -23,7 +23,7 @@ def get_block_type(block):
     if block.startswith('ice'): return 'ice'
     elif block.startswith('wood'): return 'wood'
     elif block.startswith('stone'): return 'stone'
-    else: log.warning('Unknown block type for block "{}"'.format(block))
+    else: log.warning('Unknown block type for block %s', block)
 
 
 def remove_ice_blocks(blocks):
@@ -58,7 +58,7 @@ class Structure:
         self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
         self.STRUCTURE_WIDTH = self.SQUARE_DIMENSION * len(self.blocks)
         self.NUMBER_OF_RECTANGLES = int(self.STRUCTURE_WIDTH / self.RECTANGLE_WIDTH) + 1
-        self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=lambda column: len(column)))
+        self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=len))
         if platforms is None:
             platforms = self.generate_platforms()
             self.insert_platforms(platforms)
@@ -82,17 +82,27 @@ class Structure:
         return -(self.NUMBER_OF_RECTANGLES * self.RECTANGLE_WIDTH - self.STRUCTURE_WIDTH) / 2 + index * self.RECTANGLE_WIDTH
 
 
-    def get_column_index_for_gaps(self):
-        rectangle_index = randrange(1, self.NUMBER_OF_RECTANGLES - 1)
-        column_index = self.get_rectangle_start_distance(rectangle_index) / self.SQUARE_DIMENSION
-        return int(column_index)
+    def get_column_indices_for_gaps(self):
+        failed_attempts = 0
+        columns = []
+        # FIXME Refactor the magic number "3" below into a constant or
+        # expression.
+        while failed_attempts < 3:
+            rectangle_index = randrange(1, self.NUMBER_OF_RECTANGLES - 1)
+            column = int(self.get_rectangle_start_distance(rectangle_index) / self.SQUARE_DIMENSION)
+            if column not in columns:
+                columns.append(column)
+            else:
+                failed_attempts += 1
+        return columns
 
 
-    def insert_gaps_until_top_platform(self, column):
-        for row in range(self.platforms[-1]):
-            if self.blocks[column][row] != 'platform':
-                for center in self.CENTER_INDICES_OF_RECTANGLE:
-                    self.blocks[column + center][row] = 'none'
+    def insert_gaps_until_top_platform(self, columns):
+        for column in columns:
+            for row in range(self.platforms[-1]):
+                if self.blocks[column][row] != 'platform':
+                    for center in self.CENTER_INDICES_OF_RECTANGLE:
+                        self.blocks[column + center][row] = 'none'
 
 
     def get_height_of_block(self, row):
@@ -111,7 +121,7 @@ class Structure:
         elements = ''
         for column_index, column in enumerate(self.blocks):
             for block_index, block in enumerate(column):
-                if block != 'platform' and block != 'none':
+                if block not in ['platform', 'none']:
                     elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.SQUARE_DIMENSION + self.SQUARE_DIMENSION / 2, self.get_height_of_block(block_index) + self.SQUARE_DIMENSION / 2)
         return elements
 
@@ -125,20 +135,19 @@ class Structure:
 
 
     def construct_level(self):
-        # TODO Call "insert_gaps_until_top_platform" in a loop to insert gaps to
-        # more columns.
-        self.insert_gaps_until_top_platform(self.get_column_index_for_gaps())
+        self.insert_gaps_until_top_platform(self.get_column_indices_for_gaps())
         square_elements = self.get_xml_elements_for_square_blocks()
         rectangle_elements = self.get_xml_elements_for_rectangle_blocks()
-        with open('blocks.xml', 'w') as f: f.write(square_elements + rectangle_elements)
+        with open('blocks.xml', 'w') as structure_xml_file:
+            structure_xml_file.write(square_elements + rectangle_elements)
 
 
 if __name__ == '__main__':
-    test_blocks = [
-                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
-                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
-                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
-                    ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
-                    ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square']
-                  ]
-    Structure(test_blocks, [1,3]).construct_level()
+    TEST_BLOCKS = [
+        ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
+        ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
+        ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square'],
+        ['platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform',     'platform'],
+        ['stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square', 'stone_square']
+    ]
+    Structure(TEST_BLOCKS, [1, 3]).construct_level()
