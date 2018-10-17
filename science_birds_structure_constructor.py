@@ -96,6 +96,14 @@ class Structure:
                 failed_attempts += 1
         return columns
 
+    # Not being used right now, but might be used in the future.
+    def insert_gaps_until_top(self, columns):
+        for column in columns:
+            for center in self.CENTER_INDICES_OF_RECTANGLE:
+                for row in range(len(self.blocks[column + center])):
+                    if self.blocks[column + center][row] != 'platform':
+                        self.blocks[column + center][row] = 'none'
+
 
     def insert_gaps_until_top_platform(self, columns):
         for column in columns:
