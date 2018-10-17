@@ -6,7 +6,7 @@ from random import randrange, sample
 def get_center_indices_for_rectangle(rectangle_width, square_dimension):
     SQUARES_COVERED_BY_RECTANGLE = int(rectangle_width / square_dimension) + 1 + 1 if rectangle_width % square_dimension != 0 else 0
     CENTER = int(SQUARES_COVERED_BY_RECTANGLE / 2)
-    return [CENTER] if SQUARES_COVERED_BY_RECTANGLE % 2 == 1 else [CENTER - 1, CENTER]
+    return [CENTER - 2, CENTER - 1, CENTER, CENTER + 1]
 
 
 def transpose_and_invert_blocks(blocks):
@@ -45,7 +45,7 @@ class Structure:
     represents the structure starting from bottom-left and goes towards
     top-right, by going up the column first, then to the next column.
     """
-    SQUARE_DIMENSION = 0.43
+    SQUARE_DIMENSION = 0.22
     RECTANGLE_WIDTH = 2.06
     RECTANGLE_HEIGHT = 0.22
     CENTER_INDICES_OF_RECTANGLE = get_center_indices_for_rectangle(RECTANGLE_WIDTH, SQUARE_DIMENSION)
@@ -130,7 +130,7 @@ class Structure:
         for column_index, column in enumerate(self.blocks):
             for block_index, block in enumerate(column):
                 if block not in ['platform', 'none']:
-                    elements += '<Block type="SquareSmall" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.SQUARE_DIMENSION + self.SQUARE_DIMENSION / 2, self.get_height_of_block(block_index) + self.SQUARE_DIMENSION / 2)
+                    elements += '<Block type="SquareTiny" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.SQUARE_DIMENSION + self.SQUARE_DIMENSION / 2, self.get_height_of_block(block_index) + self.SQUARE_DIMENSION / 2)
         return elements
 
 
