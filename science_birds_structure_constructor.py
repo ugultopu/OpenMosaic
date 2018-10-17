@@ -3,10 +3,10 @@ from bisect import bisect_left
 from random import randrange, sample
 
 
-def get_center_indices_for_rectangle(rectangle_width, square_dimension):
-    SQUARES_COVERED_BY_RECTANGLE = int(rectangle_width / square_dimension) + 1 + 1 if rectangle_width % square_dimension != 0 else 0
-    CENTER = int(SQUARES_COVERED_BY_RECTANGLE / 2)
-    return [CENTER - 2, CENTER - 1, CENTER, CENTER + 1]
+def get_center_indices_for_rectangle(rectangle_width, principal_block_width):
+    PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE = int(rectangle_width / principal_block_width) + 1 + 1 if rectangle_width % principal_block_width != 0 else 0
+    CENTER = int(PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE / 2)
+    return [CENTER]
 
 
 def transpose_and_invert_blocks(blocks):
@@ -45,10 +45,14 @@ class Structure:
     represents the structure starting from bottom-left and goes towards
     top-right, by going up the column first, then to the next column.
     """
-    SQUARE_DIMENSION = 0.22
+    """ "Principal Block" is the block that is most frequently used to construct
+    the structure. It can be a Hollow Square, Tiny Square, Tiny Rectangle,
+    Small Rectangle, etc. """
+    PRINCIPAL_BLOCK_WIDTH = 0.85
+    PRINCIPAL_BLOCK_HEIGHT = 0.85
     RECTANGLE_WIDTH = 2.06
     RECTANGLE_HEIGHT = 0.22
-    CENTER_INDICES_OF_RECTANGLE = get_center_indices_for_rectangle(RECTANGLE_WIDTH, SQUARE_DIMENSION)
+    CENTER_INDICES_OF_RECTANGLE = get_center_indices_for_rectangle(RECTANGLE_WIDTH, PRINCIPAL_BLOCK_WIDTH)
     GROUND_HEIGHT = -3.5
     PLATFORM_RATIO = .3
     "Ratio of number of platforms over total height of the shortest column."
@@ -56,7 +60,7 @@ class Structure:
 
     def __init__(self, blocks, platforms=None):
         self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
-        self.STRUCTURE_WIDTH = self.SQUARE_DIMENSION * len(self.blocks)
+        self.STRUCTURE_WIDTH = self.PRINCIPAL_BLOCK_WIDTH * len(self.blocks)
         self.NUMBER_OF_RECTANGLES = int(self.STRUCTURE_WIDTH / self.RECTANGLE_WIDTH) + 1
         self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=len))
         if platforms is None:
@@ -89,7 +93,7 @@ class Structure:
         # expression.
         while failed_attempts < 3:
             rectangle_index = randrange(1, self.NUMBER_OF_RECTANGLES - 1)
-            column = int(self.get_rectangle_start_distance(rectangle_index) / self.SQUARE_DIMENSION)
+            column = int(self.get_rectangle_start_distance(rectangle_index) / self.PRINCIPAL_BLOCK_WIDTH)
             if column not in columns:
                 columns.append(column)
             else:
@@ -119,10 +123,10 @@ class Structure:
         been placed in "blocks".
         """
         NUMBER_OF_PLATFORMS = bisect_left(self.platforms, row)
-        return self.GROUND_HEIGHT + (row - NUMBER_OF_PLATFORMS) * self.SQUARE_DIMENSION + NUMBER_OF_PLATFORMS * self.RECTANGLE_HEIGHT
+        return self.GROUND_HEIGHT + (row - NUMBER_OF_PLATFORMS) * self.PRINCIPAL_BLOCK_HEIGHT + NUMBER_OF_PLATFORMS * self.RECTANGLE_HEIGHT
 
 
-    def get_xml_elements_for_square_blocks(self):
+    def get_xml_elements_for_principal_blocks(self):
         """
         Returns XML elements to generate a Science Birds level.
         """
@@ -130,7 +134,7 @@ class Structure:
         for column_index, column in enumerate(self.blocks):
             for block_index, block in enumerate(column):
                 if block not in ['platform', 'none']:
-                    elements += '<Block type="SquareTiny" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.SQUARE_DIMENSION + self.SQUARE_DIMENSION / 2, self.get_height_of_block(block_index) + self.SQUARE_DIMENSION / 2)
+                    elements += '<Block type="SquareHole" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.PRINCIPAL_BLOCK_WIDTH + self.PRINCIPAL_BLOCK_WIDTH / 2, self.get_height_of_block(block_index) + self.PRINCIPAL_BLOCK_HEIGHT / 2)
         return elements
 
 
@@ -144,10 +148,10 @@ class Structure:
 
     def construct_level(self):
         self.insert_gaps_until_top_platform(self.get_column_indices_for_gaps())
-        square_elements = self.get_xml_elements_for_square_blocks()
+        principal_block_elements = self.get_xml_elements_for_principal_blocks()
         rectangle_elements = self.get_xml_elements_for_rectangle_blocks()
         with open('blocks.xml', 'w') as structure_xml_file:
-            structure_xml_file.write(square_elements + rectangle_elements)
+            structure_xml_file.write(principal_block_elements + rectangle_elements)
 
 
 if __name__ == '__main__':
