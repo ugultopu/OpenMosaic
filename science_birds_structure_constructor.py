@@ -2,6 +2,8 @@ import logging as log
 from bisect import bisect_left
 from random import randrange, sample
 
+from science_birds_blocks import block_registry
+
 
 def transpose_and_invert_blocks(blocks):
     """
@@ -49,18 +51,20 @@ class Structure:
     """ "Principal Block" is the block that is most frequently used to construct
     the structure. It can be a Hollow Square, Tiny Square, Tiny Rectangle,
     Small Rectangle, etc. """
-    PRINCIPAL_BLOCK_WIDTH = 0.85
-    PRINCIPAL_BLOCK_HEIGHT = 0.85
-    RECTANGLE_WIDTH = 2.06
-    RECTANGLE_HEIGHT = 0.22
+    PRINCIPAL_BLOCK = 'tiny_square'
+    RECTANGLE_WIDTH = block_registry['long_rectangle']['width']
+    RECTANGLE_HEIGHT = block_registry['long_rectangle']['height']
     PIG_WIDTH = 0.5
     GROUND_HEIGHT = -3.5
     PLATFORM_RATIO = .5
     "Ratio of number of platforms over total height of the shortest column."
+    BLOCK_STRING = '<Block type="{}" material="{}" x="{}" y="{}" rotation="{}"/>\n'
 
 
     @classmethod
     def init_static(cls):
+        cls.PRINCIPAL_BLOCK_WIDTH = block_registry[cls.PRINCIPAL_BLOCK]['width']
+        cls.PRINCIPAL_BLOCK_HEIGHT = block_registry[cls.PRINCIPAL_BLOCK]['height']
         cls.calculate_center_indices_for_rectangle()
 
 
@@ -160,7 +164,11 @@ class Structure:
         for column_index, column in enumerate(self.blocks):
             for block_index, block in enumerate(column):
                 if block not in ['platform', 'none']:
-                    elements += '<Block type="SquareHole" material="{}" x="{}" y="{}" rotation="0"/>\n'.format(get_block_type(block), column_index * self.PRINCIPAL_BLOCK_WIDTH + self.PRINCIPAL_BLOCK_WIDTH / 2, self.get_height_of_block(block_index) + self.PRINCIPAL_BLOCK_HEIGHT / 2)
+                    elements += self.BLOCK_STRING.format(block_registry[self.PRINCIPAL_BLOCK]['xml_name'],
+                                                         get_block_type(block),
+                                                         column_index * self.PRINCIPAL_BLOCK_WIDTH + self.PRINCIPAL_BLOCK_WIDTH / 2,
+                                                         self.get_height_of_block(block_index) + self.PRINCIPAL_BLOCK_HEIGHT / 2,
+                                                         0)
         return elements
 
 
@@ -168,7 +176,11 @@ class Structure:
         elements = ''
         for platform in self.platforms:
             for index in range(self.NUMBER_OF_RECTANGLES):
-                elements += '<Block type="RectBig" material="{}" x="{}" y="{}" rotation="0"/>\n'.format('stone', self.get_rectangle_start_distance(index) + self.RECTANGLE_WIDTH / 2, self.get_height_of_block(platform) + self.RECTANGLE_HEIGHT / 2)
+                elements += self.BLOCK_STRING.format(block_registry['long_rectangle']['xml_name'],
+                                                     'stone',
+                                                     self.get_rectangle_start_distance(index) + self.RECTANGLE_WIDTH / 2,
+                                                     self.get_height_of_block(platform) + self.RECTANGLE_HEIGHT / 2,
+                                                     0)
         return elements
 
 
