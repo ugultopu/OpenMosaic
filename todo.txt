@@ -1,3 +1,8 @@
+- Convert the appropriate methods to class methods ("static methods" in Java
+ terms).
+- Put the block information (name, width, height, etc.) into a Python dictionary
+and refer to the dictionary in various parts of the code.
+
 DONE
 ----
 - Right now, the "point" for the platforms (that is, the tile that we take as

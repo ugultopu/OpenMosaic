@@ -3,12 +3,6 @@ from bisect import bisect_left
 from random import randrange, sample
 
 
-def get_center_indices_for_rectangle(rectangle_width, principal_block_width):
-    PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE = int(rectangle_width / principal_block_width) + 1 + 1 if rectangle_width % principal_block_width != 0 else 0
-    CENTER = int(PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE / 2)
-    return [CENTER]
-
-
 def transpose_and_invert_blocks(blocks):
     """
     The blocks blocks start from top-left and go towards bottom-right. This is
@@ -34,6 +28,13 @@ def remove_ice_blocks(blocks):
     return [[block for block in column if get_block_type(block) != 'ice'] for column in blocks]
 
 
+def staticinit(cls):
+    """A decorator for static initialization."""
+    cls.init_static()
+    return cls
+
+
+@staticinit
 class Structure:
     """ A building-like structure for Science Birds.
 
@@ -52,10 +53,35 @@ class Structure:
     PRINCIPAL_BLOCK_HEIGHT = 0.85
     RECTANGLE_WIDTH = 2.06
     RECTANGLE_HEIGHT = 0.22
-    CENTER_INDICES_OF_RECTANGLE = get_center_indices_for_rectangle(RECTANGLE_WIDTH, PRINCIPAL_BLOCK_WIDTH)
+    PIG_WIDTH = 0.5
     GROUND_HEIGHT = -3.5
-    PLATFORM_RATIO = .3
+    PLATFORM_RATIO = .5
     "Ratio of number of platforms over total height of the shortest column."
+
+
+    @classmethod
+    def init_static(cls):
+        cls.calculate_center_indices_for_rectangle()
+
+
+    @classmethod
+    # FIXME This algorithm might not be exactly correct. For example, for Hollow
+    # Squares as principle blocks, if one hollow square is placed right in the
+    # middle of the rectangle, the rectangle will cover only 2 more rectangles
+    # (and it will cover them partly, as expected), instead of covering 4
+    # rectangles in total. So, you might need to do the calculation on a
+    # case-by-case basis for each rectangle. This is computationally much more
+    # expensive though. Think of a solution for this.
+    def calculate_center_indices_for_rectangle(cls):
+        cls.CENTER_INDICES_OF_RECTANGLE = []
+        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE = int(cls.RECTANGLE_WIDTH / cls.PRINCIPAL_BLOCK_WIDTH) + 1 + 1 if cls.RECTANGLE_WIDTH % cls.PRINCIPAL_BLOCK_WIDTH != 0 else 0
+        CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE / 2)
+        for index in range(int(cls.PIG_WIDTH / cls.PRINCIPAL_BLOCK_WIDTH) + 1):
+            half_of_index = int(index / 2)
+            if index % 2 == 0:
+                cls.CENTER_INDICES_OF_RECTANGLE.append(CENTER + half_of_index)
+            else:
+                cls.CENTER_INDICES_OF_RECTANGLE.append(CENTER - half_of_index - 1)
 
 
     def __init__(self, blocks, platforms=None):
