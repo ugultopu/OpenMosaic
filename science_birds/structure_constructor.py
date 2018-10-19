@@ -2,11 +2,11 @@ import logging as log
 from bisect import bisect_left
 from random import randrange
 
-from science_birds_constants import (BLOCK_REGISTRY,
-                                     GROUND_HEIGHT,
-                                     BLOCK_STRING,
-                                     PIG_STRING,
-                                     LEVEL_TEMPLATE)
+from constants import (BLOCK_REGISTRY,
+                       GROUND_HEIGHT,
+                       BLOCK_STRING,
+                       PIG_STRING,
+                       LEVEL_TEMPLATE)
 
 
 def transpose_and_invert_blocks(blocks):

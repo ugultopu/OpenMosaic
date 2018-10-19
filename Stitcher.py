@@ -5,7 +5,7 @@ import math
 import sys
 import features
 import random
-from science_birds_structure_constructor import Structure
+from science_birds.structure_constructor import Structure
 from collections import deque
 
 INDEX_PATH = "./index/"
