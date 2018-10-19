@@ -1,8 +1,12 @@
 import logging as log
 from bisect import bisect_left
-from random import randrange, sample
+from random import randrange
 
-from science_birds_blocks import block_registry
+from science_birds_constants import (BLOCK_REGISTRY,
+                                     GROUND_HEIGHT,
+                                     BLOCK_STRING,
+                                     PIG_STRING,
+                                     LEVEL_TEMPLATE)
 
 
 def transpose_and_invert_blocks(blocks):
@@ -48,24 +52,16 @@ class Structure:
     represents the structure starting from bottom-left and goes towards
     top-right, by going up the column first, then to the next column.
     """
+    PRINCIPAL_BLOCK = 'tiny_square'
     """ "Principal Block" is the block that is most frequently used to construct
     the structure. It can be a Hollow Square, Tiny Square, Tiny Rectangle,
     Small Rectangle, etc. """
-    PRINCIPAL_BLOCK = 'tiny_square'
-    RECTANGLE_WIDTH = block_registry['long_rectangle']['width']
-    RECTANGLE_HEIGHT = block_registry['long_rectangle']['height']
-    PIG_WIDTH = 0.5
-    GROUND_HEIGHT = -3.5
-    PLATFORM_RATIO = .5
-    "Ratio of number of platforms over total height of the shortest column."
-    BLOCK_STRING = '<Block type="{}" material="{}" x="{}" y="{}" rotation="{}"/>\n'
+    PLATFORM_BLOCK = 'long_rectangle'
 
 
     @classmethod
     def init_static(cls):
-        cls.PRINCIPAL_BLOCK_WIDTH = block_registry[cls.PRINCIPAL_BLOCK]['width']
-        cls.PRINCIPAL_BLOCK_HEIGHT = block_registry[cls.PRINCIPAL_BLOCK]['height']
-        cls.calculate_center_indices_for_rectangle()
+        cls.calculate_center_indices_for_platform_block()
 
 
     @classmethod
@@ -76,22 +72,22 @@ class Structure:
     # rectangles in total. So, you might need to do the calculation on a
     # case-by-case basis for each rectangle. This is computationally much more
     # expensive though. Think of a solution for this.
-    def calculate_center_indices_for_rectangle(cls):
-        cls.CENTER_INDICES_OF_RECTANGLE = []
-        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE = int(cls.RECTANGLE_WIDTH / cls.PRINCIPAL_BLOCK_WIDTH) + 1 + 1 if cls.RECTANGLE_WIDTH % cls.PRINCIPAL_BLOCK_WIDTH != 0 else 0
-        CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_RECTANGLE / 2)
-        for index in range(int(cls.PIG_WIDTH / cls.PRINCIPAL_BLOCK_WIDTH) + 1):
+    def calculate_center_indices_for_platform_block(cls):
+        cls.CENTER_INDICES_OF_PLATFORM_BLOCK = []
+        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK = int(BLOCK_REGISTRY[cls.PLATFORM_BLOCK]['width'] / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK]['width']) + 1 + 1 if BLOCK_REGISTRY[cls.PLATFORM_BLOCK]['width'] % BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK]['width'] != 0 else 0
+        CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK / 2)
+        for index in range(int(BLOCK_REGISTRY['pig']['width'] / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK]['width']) + 1):
             half_of_index = int(index / 2)
             if index % 2 == 0:
-                cls.CENTER_INDICES_OF_RECTANGLE.append(CENTER + half_of_index)
+                cls.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER + half_of_index)
             else:
-                cls.CENTER_INDICES_OF_RECTANGLE.append(CENTER - half_of_index - 1)
+                cls.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER - half_of_index - 1)
 
 
     def __init__(self, blocks, platforms=None):
         self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
-        self.STRUCTURE_WIDTH = self.PRINCIPAL_BLOCK_WIDTH * len(self.blocks)
-        self.NUMBER_OF_RECTANGLES = int(self.STRUCTURE_WIDTH / self.RECTANGLE_WIDTH) + 1
+        self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'] * len(self.blocks)
+        self.BLOCKS_PER_PLATFORM = int(self.STRUCTURE_WIDTH / BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width']) + 1
         self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=len))
         if platforms is None:
             platforms = self.generate_platforms()
@@ -100,7 +96,7 @@ class Structure:
 
 
     def generate_platforms(self):
-        return sorted(sample(range(self.SHORTEST_COLUMN_HEIGHT), int(self.PLATFORM_RATIO * self.SHORTEST_COLUMN_HEIGHT)))
+        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig']['height'] / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['height']) + 1]
 
 
     def insert_platforms(self, platforms):
@@ -109,11 +105,11 @@ class Structure:
                 column[platform] = 'platform'
 
 
-    def get_rectangle_start_distance(self, index):
+    def get_platform_block_start_distance(self, index):
         """
-        Get X distance for the start point of the rectangle at the given index.
+        Get X distance for the start point of the platform block at the given index.
         """
-        return -(self.NUMBER_OF_RECTANGLES * self.RECTANGLE_WIDTH - self.STRUCTURE_WIDTH) / 2 + index * self.RECTANGLE_WIDTH
+        return -(self.BLOCKS_PER_PLATFORM * BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width'] - self.STRUCTURE_WIDTH) / 2 + index * BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width']
 
 
     def get_column_indices_for_gaps(self):
@@ -122,8 +118,8 @@ class Structure:
         # FIXME Refactor the magic number "3" below into a constant or
         # expression.
         while failed_attempts < 3:
-            rectangle_index = randrange(1, self.NUMBER_OF_RECTANGLES - 1)
-            column = int(self.get_rectangle_start_distance(rectangle_index) / self.PRINCIPAL_BLOCK_WIDTH)
+            platform_block_index = randrange(1, self.BLOCKS_PER_PLATFORM - 1)
+            column = int(self.get_platform_block_start_distance(platform_block_index) / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'])
             if column not in columns:
                 columns.append(column)
             else:
@@ -133,7 +129,7 @@ class Structure:
     # Not being used right now, but might be used in the future.
     def insert_gaps_until_top(self, columns):
         for column in columns:
-            for center in self.CENTER_INDICES_OF_RECTANGLE:
+            for center in self.CENTER_INDICES_OF_PLATFORM_BLOCK:
                 for row in range(len(self.blocks[column + center])):
                     if self.blocks[column + center][row] != 'platform':
                         self.blocks[column + center][row] = 'none'
@@ -143,7 +139,7 @@ class Structure:
         for column in columns:
             for row in range(self.platforms[-1]):
                 if self.blocks[column][row] != 'platform':
-                    for center in self.CENTER_INDICES_OF_RECTANGLE:
+                    for center in self.CENTER_INDICES_OF_PLATFORM_BLOCK:
                         self.blocks[column + center][row] = 'none'
 
 
@@ -152,8 +148,8 @@ class Structure:
         Assumes the "platforms" are sorted and the blocks in "platforms" have
         been placed in "blocks".
         """
-        NUMBER_OF_PLATFORMS = bisect_left(self.platforms, row)
-        return self.GROUND_HEIGHT + (row - NUMBER_OF_PLATFORMS) * self.PRINCIPAL_BLOCK_HEIGHT + NUMBER_OF_PLATFORMS * self.RECTANGLE_HEIGHT
+        number_of_platforms = bisect_left(self.platforms, row)
+        return GROUND_HEIGHT + (row - number_of_platforms) * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['height'] + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK]['height']
 
 
     def get_xml_elements_for_principal_blocks(self):
@@ -164,22 +160,22 @@ class Structure:
         for column_index, column in enumerate(self.blocks):
             for block_index, block in enumerate(column):
                 if block not in ['platform', 'none']:
-                    elements += self.BLOCK_STRING.format(block_registry[self.PRINCIPAL_BLOCK]['xml_name'],
+                    elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['xml_name'],
                                                          get_block_type(block),
-                                                         column_index * self.PRINCIPAL_BLOCK_WIDTH + self.PRINCIPAL_BLOCK_WIDTH / 2,
-                                                         self.get_height_of_block(block_index) + self.PRINCIPAL_BLOCK_HEIGHT / 2,
+                                                         column_index * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'] + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'] / 2,
+                                                         self.get_height_of_block(block_index) + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['height'] / 2,
                                                          0)
         return elements
 
 
-    def get_xml_elements_for_rectangle_blocks(self):
+    def get_xml_elements_for_platform_blocks(self):
         elements = ''
         for platform in self.platforms:
-            for index in range(self.NUMBER_OF_RECTANGLES):
-                elements += self.BLOCK_STRING.format(block_registry['long_rectangle']['xml_name'],
+            for index in range(self.BLOCKS_PER_PLATFORM):
+                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PLATFORM_BLOCK]['xml_name'],
                                                      'stone',
-                                                     self.get_rectangle_start_distance(index) + self.RECTANGLE_WIDTH / 2,
-                                                     self.get_height_of_block(platform) + self.RECTANGLE_HEIGHT / 2,
+                                                     self.get_platform_block_start_distance(index) + BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width'] / 2,
+                                                     self.get_height_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK]['height'] / 2,
                                                      0)
         return elements
 
@@ -187,9 +183,9 @@ class Structure:
     def construct_level(self):
         self.insert_gaps_until_top_platform(self.get_column_indices_for_gaps())
         principal_block_elements = self.get_xml_elements_for_principal_blocks()
-        rectangle_elements = self.get_xml_elements_for_rectangle_blocks()
+        platform_block_elements = self.get_xml_elements_for_platform_blocks()
         with open('blocks.xml', 'w') as structure_xml_file:
-            structure_xml_file.write(principal_block_elements + rectangle_elements)
+            structure_xml_file.write(LEVEL_TEMPLATE.strip().format(principal_block_elements + platform_block_elements))
 
 
 if __name__ == '__main__':

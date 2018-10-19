@@ -1,3 +1,7 @@
+- Create a class named "Block" and create instances of it for different block
+types, so that e.g., getting width of a block is more straightforward.
+- Check if you can edit/condensate, etc. the LEVEL_TEMPLATE in
+'science_birds_constants'.
 - Convert the appropriate methods to class methods ("static methods" in Java
  terms).
 
