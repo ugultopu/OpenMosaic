@@ -1,24 +1,10 @@
+from block import Block
+
 BLOCK_REGISTRY = {
-    'square_with_hole': {
-        'xml_name': 'SquareHole',
-        'width': 0.85,
-        'height': 0.85
-    },
-    'tiny_square': {
-        'xml_name': 'SquareTiny',
-        'width': 0.22,
-        'height': 0.22
-    },
-    'long_rectangle': {
-        'xml_name': 'RectBig',
-        'width': 2.06,
-        'height': 0.22
-    },
-    'pig': {
-        'xml_name': 'BasicSmall',
-        'width': 0.5,
-        'height': 0.5
-    }
+    'square_with_hole': Block('SquareHole', 0.85, 0.85),
+    'tiny_square': Block('SquareTiny', 0.22, 0.22),
+    'long_rectangle': Block('RectBig', 2.06, 0.22),
+    'pig': Block('BasicSmall', 0.5, 0.5),
 }
 
 GROUND_HEIGHT = -3.5

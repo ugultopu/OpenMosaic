@@ -74,9 +74,9 @@ class Structure:
     # expensive though. Think of a solution for this.
     def calculate_center_indices_for_platform_block(cls):
         cls.CENTER_INDICES_OF_PLATFORM_BLOCK = []
-        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK = int(BLOCK_REGISTRY[cls.PLATFORM_BLOCK]['width'] / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK]['width']) + 1 + 1 if BLOCK_REGISTRY[cls.PLATFORM_BLOCK]['width'] % BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK]['width'] != 0 else 0
+        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK = int(BLOCK_REGISTRY[cls.PLATFORM_BLOCK].width / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK].width) + 1 + 1 if BLOCK_REGISTRY[cls.PLATFORM_BLOCK].width % BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK].width != 0 else 0
         CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK / 2)
-        for index in range(int(BLOCK_REGISTRY['pig']['width'] / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK]['width']) + 1):
+        for index in range(int(BLOCK_REGISTRY['pig'].width / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK].width) + 1):
             half_of_index = int(index / 2)
             if index % 2 == 0:
                 cls.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER + half_of_index)
@@ -86,8 +86,8 @@ class Structure:
 
     def __init__(self, blocks, platforms=None):
         self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
-        self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'] * len(self.blocks)
-        self.BLOCKS_PER_PLATFORM = int(self.STRUCTURE_WIDTH / BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width']) + 1
+        self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width * len(self.blocks)
+        self.BLOCKS_PER_PLATFORM = int(self.STRUCTURE_WIDTH / BLOCK_REGISTRY[self.PLATFORM_BLOCK].width) + 1
         self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=len))
         if platforms is None:
             platforms = self.generate_platforms()
@@ -96,7 +96,7 @@ class Structure:
 
 
     def generate_platforms(self):
-        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig']['height'] / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['height']) + 1]
+        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig'].height / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height) + 1]
 
 
     def insert_platforms(self, platforms):
@@ -109,7 +109,7 @@ class Structure:
         """
         Get X distance for the start point of the platform block at the given index.
         """
-        return -(self.BLOCKS_PER_PLATFORM * BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width'] - self.STRUCTURE_WIDTH) / 2 + index * BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width']
+        return -(self.BLOCKS_PER_PLATFORM * BLOCK_REGISTRY[self.PLATFORM_BLOCK].width - self.STRUCTURE_WIDTH) / 2 + index * BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
 
 
     def get_column_indices_for_gaps(self):
@@ -119,7 +119,7 @@ class Structure:
         # expression.
         while failed_attempts < 3:
             platform_block_index = randrange(1, self.BLOCKS_PER_PLATFORM - 1)
-            column = int(self.get_platform_block_start_distance(platform_block_index) / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'])
+            column = int(self.get_platform_block_start_distance(platform_block_index) / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width)
             if column not in columns:
                 columns.append(column)
             else:
@@ -149,7 +149,7 @@ class Structure:
         been placed in "blocks".
         """
         number_of_platforms = bisect_left(self.platforms, row)
-        return GROUND_HEIGHT + (row - number_of_platforms) * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['height'] + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK]['height']
+        return GROUND_HEIGHT + (row - number_of_platforms) * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK].height
 
 
     def get_xml_elements_for_principal_blocks(self):
@@ -160,11 +160,11 @@ class Structure:
         for column_index, column in enumerate(self.blocks):
             for block_index, block in enumerate(column):
                 if block not in ['platform', 'none']:
-                    elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['xml_name'],
-                                                         get_block_type(block),
-                                                         column_index * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'] + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['width'] / 2,
-                                                         self.get_height_of_block(block_index) + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK]['height'] / 2,
-                                                         0)
+                    elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].xml_element_name,
+                                                    get_block_type(block),
+                                                    column_index * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width / 2,
+                                                    self.get_height_of_block(block_index) + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height / 2,
+                                                    0)
         return elements
 
 
@@ -172,11 +172,11 @@ class Structure:
         elements = ''
         for platform in self.platforms:
             for index in range(self.BLOCKS_PER_PLATFORM):
-                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PLATFORM_BLOCK]['xml_name'],
-                                                     'stone',
-                                                     self.get_platform_block_start_distance(index) + BLOCK_REGISTRY[self.PLATFORM_BLOCK]['width'] / 2,
-                                                     self.get_height_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK]['height'] / 2,
-                                                     0)
+                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PLATFORM_BLOCK].xml_element_name,
+                                                'stone',
+                                                self.get_platform_block_start_distance(index) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / 2,
+                                                self.get_height_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height / 2,
+                                                0)
         return elements
 
 
