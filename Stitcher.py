@@ -5,8 +5,10 @@ import math
 import sys
 import features
 import random
-from science_birds.structure_constructor import Structure
+from ConfigParser import ConfigParser
 from collections import deque
+
+from science_birds.structure_constructor import Structure
 
 INDEX_PATH = "./index/"
 IMAGES_TO_USE_PER_IMAGE = 5
@@ -86,7 +88,13 @@ def main():
 
     print "Finished processing of image"
 
-    Structure(mosaic_tiles).construct_level()
+    config = ConfigParser()
+    config.read('science_birds/config.ini')
+
+    Structure(config.get('DEFAULT', 'LevelPath'),
+              config.get('DEFAULT', 'PrincipalBlock'),
+              config.get('DEFAULT', 'PlatformBlock'),
+              mosaic_tiles).construct_level()
 
     cv2.imwrite(str(sys.argv[4]), inputImage)
 

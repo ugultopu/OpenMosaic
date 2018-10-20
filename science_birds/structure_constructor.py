@@ -34,13 +34,6 @@ def remove_ice_blocks(blocks):
     return [[block for block in column if get_block_type(block) != 'ice'] for column in blocks]
 
 
-def staticinit(cls):
-    """A decorator for static initialization."""
-    cls.init_static()
-    return cls
-
-
-@staticinit
 class Structure:
     """ A building-like structure for Science Birds.
 
@@ -52,39 +45,25 @@ class Structure:
     represents the structure starting from bottom-left and goes towards
     top-right, by going up the column first, then to the next column.
     """
-    PRINCIPAL_BLOCK = 'tiny_square'
-    """ "Principal Block" is the block that is most frequently used to construct
-    the structure. It can be a Hollow Square, Tiny Square, Tiny Rectangle,
-    Small Rectangle, etc. """
-    PLATFORM_BLOCK = 'long_rectangle'
 
 
-    @classmethod
-    def init_static(cls):
-        cls.calculate_center_indices_for_platform_block()
-
-
-    @classmethod
-    # FIXME This algorithm might not be exactly correct. For example, for Hollow
-    # Squares as principle blocks, if one hollow square is placed right in the
-    # middle of the rectangle, the rectangle will cover only 2 more rectangles
-    # (and it will cover them partly, as expected), instead of covering 4
-    # rectangles in total. So, you might need to do the calculation on a
-    # case-by-case basis for each rectangle. This is computationally much more
-    # expensive though. Think of a solution for this.
-    def calculate_center_indices_for_platform_block(cls):
-        cls.CENTER_INDICES_OF_PLATFORM_BLOCK = []
-        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK = int(BLOCK_REGISTRY[cls.PLATFORM_BLOCK].width / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK].width) + 1 + 1 if BLOCK_REGISTRY[cls.PLATFORM_BLOCK].width % BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK].width != 0 else 0
-        CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK / 2)
-        for index in range(int(BLOCK_REGISTRY['pig'].width / BLOCK_REGISTRY[cls.PRINCIPAL_BLOCK].width) + 1):
-            half_of_index = int(index / 2)
-            if index % 2 == 0:
-                cls.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER + half_of_index)
-            else:
-                cls.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER - half_of_index - 1)
-
-
-    def __init__(self, blocks, platforms=None):
+    def __init__(self,
+                 level_path,
+                 principal_block,
+                 platform_block,
+                 blocks,
+                 platforms=None):
+        self.LEVEL_PATH = level_path
+        self.PRINCIPAL_BLOCK = principal_block
+        """ PRINCIPAL_BLOCK is the block that is most frequently used to
+            construct the structure. Examples can be:
+            - Hollow Square
+            - Tiny Square
+            - Tiny Rectangle
+            - Small Rectangle
+            etc. """
+        self.PLATFORM_BLOCK = platform_block
+        self.calculate_center_indices_of_platform_block()
         self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
         self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width * len(self.blocks)
         self.BLOCKS_PER_PLATFORM = int(self.STRUCTURE_WIDTH / BLOCK_REGISTRY[self.PLATFORM_BLOCK].width) + 1
@@ -95,8 +74,30 @@ class Structure:
         self.platforms = platforms
 
 
+    # FIXME This algorithm might not be exactly correct. For example, for Hollow
+    # Squares as principle blocks, if one hollow square is placed right in the
+    # middle of the platform block, the platform block will cover only 2 more platform blocks
+    # (and it will cover them partly, as expected), instead of covering 4
+    # platform blocks in total. So, you might need to do the calculation on a
+    # case-by-case basis for each platform block. This is computationally much more
+    # expensive though. Think of a solution for this.
+    def calculate_center_indices_of_platform_block(self):
+        """Compute the relative indices of PRINCIPAL_BLOCKs that we need to
+        remove from the center of a PLATFORM_BLOCK in order to have enough
+        space to insert a pig."""
+        self.CENTER_INDICES_OF_PLATFORM_BLOCK = []
+        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK = int(BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width) + 1 + 1 if BLOCK_REGISTRY[self.PLATFORM_BLOCK].width % BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width != 0 else 0
+        CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK / 2)
+        for index in range(int(BLOCK_REGISTRY['pig'].width / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width) + 1):
+            half_of_index = int(index / 2)
+            if index % 2 == 0:
+                self.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER + half_of_index)
+            else:
+                self.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER - half_of_index - 1)
+
+
     def generate_platforms(self):
-        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig'].height / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height) + 1]
+        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig'].height / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height) + 2]
 
 
     def insert_platforms(self, platforms):
@@ -184,8 +185,8 @@ class Structure:
         self.insert_gaps_until_top_platform(self.get_column_indices_for_gaps())
         principal_block_elements = self.get_xml_elements_for_principal_blocks()
         platform_block_elements = self.get_xml_elements_for_platform_blocks()
-        with open('blocks.xml', 'w') as structure_xml_file:
-            structure_xml_file.write(LEVEL_TEMPLATE.strip().format(principal_block_elements + platform_block_elements))
+        with open(self.LEVEL_PATH, 'w') as level_file:
+            level_file.write(LEVEL_TEMPLATE.strip().format(principal_block_elements + platform_block_elements))
 
 
 if __name__ == '__main__':

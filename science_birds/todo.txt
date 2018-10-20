@@ -1,5 +1,3 @@
-- Create a class named "Block" and create instances of it for different block
-types, so that e.g., getting width of a block is more straightforward.
 - Check if you can edit/condensate, etc. the LEVEL_TEMPLATE in
 'science_birds_constants'.
 - Convert the appropriate methods to class methods ("static methods" in Java
@@ -22,3 +20,13 @@ place that they have been defined in order to describe their purpose.
 - You use "tile" and "block" to refer to the same thing. Unify these.
 - Put the block information (name, width, height, etc.) into a Python dictionary
 and refer to the dictionary in various parts of the code.
+- Create a class named "Block" and create instances of it for different block
+types, so that e.g., getting width of a block is more straightforward.
+- Put strings (block strings, pig strings, level template, etc.) to a separate
+file and import strings from that file.
+- Complete putting platforms regularly instead of randomly.
+- Create a config file and read config parameters such as principal block,
+structure block, etc. from that file.
+- Make the output write directly to Science Birds level directory, so that you
+won't need to do any copy-pasting at all after program run. You will be able to
+just start the level and test it.
