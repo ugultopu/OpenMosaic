@@ -1,6 +1,5 @@
 import logging as log
 from bisect import bisect_left
-from random import randrange
 
 from constants import (BLOCK_REGISTRY,
                        GROUND_HEIGHT,
@@ -63,37 +62,14 @@ class Structure:
             - Small Rectangle
             etc. """
         self.PLATFORM_BLOCK = platform_block
-        self.calculate_center_indices_of_platform_block()
-        self.blocks = remove_ice_blocks(transpose_and_invert_blocks(blocks))
-        self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width * len(self.blocks)
+        self.BLOCKS = remove_ice_blocks(transpose_and_invert_blocks(blocks))
+        self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width * len(self.BLOCKS)
         self.BLOCKS_PER_PLATFORM = int(self.STRUCTURE_WIDTH / BLOCK_REGISTRY[self.PLATFORM_BLOCK].width) + 1
-        self.SHORTEST_COLUMN_HEIGHT = len(min(self.blocks, key=len))
+        self.SHORTEST_COLUMN_HEIGHT = len(min(self.BLOCKS, key=len))
         if platforms is None:
             platforms = self.generate_platforms()
             self.insert_platforms(platforms)
         self.platforms = platforms
-
-
-    # FIXME This algorithm might not be exactly correct. For example, for Hollow
-    # Squares as principle blocks, if one hollow square is placed right in the
-    # middle of the platform block, the platform block will cover only 2 more platform blocks
-    # (and it will cover them partly, as expected), instead of covering 4
-    # platform blocks in total. So, you might need to do the calculation on a
-    # case-by-case basis for each platform block. This is computationally much more
-    # expensive though. Think of a solution for this.
-    def calculate_center_indices_of_platform_block(self):
-        """Compute the relative indices of PRINCIPAL_BLOCKs that we need to
-        remove from the center of a PLATFORM_BLOCK in order to have enough
-        space to insert a pig."""
-        self.CENTER_INDICES_OF_PLATFORM_BLOCK = []
-        NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK = int(BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width) + 1 + 1 if BLOCK_REGISTRY[self.PLATFORM_BLOCK].width % BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width != 0 else 0
-        CENTER = int(NUMBER_OF_PRINCIPAL_BLOCKS_COVERED_BY_PLATFORM_BLOCK / 2)
-        for index in range(int(BLOCK_REGISTRY['pig'].width / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width) + 1):
-            half_of_index = int(index / 2)
-            if index % 2 == 0:
-                self.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER + half_of_index)
-            else:
-                self.CENTER_INDICES_OF_PLATFORM_BLOCK.append(CENTER - half_of_index - 1)
 
 
     def generate_platforms(self):
@@ -102,7 +78,7 @@ class Structure:
 
     def insert_platforms(self, platforms):
         for platform in platforms:
-            for column in self.blocks:
+            for column in self.BLOCKS:
                 column[platform] = 'platform'
 
 
@@ -114,34 +90,39 @@ class Structure:
 
 
     def get_column_indices_for_gaps(self):
-        failed_attempts = 0
+        """Get column indices to make room to place a pig in the center of each
+        platform block, except the platform blocks on edges."""
         columns = []
-        # FIXME Refactor the magic number "3" below into a constant or
-        # expression.
-        while failed_attempts < 3:
-            platform_block_index = randrange(1, self.BLOCKS_PER_PLATFORM - 1)
-            column = int(self.get_platform_block_start_distance(platform_block_index) / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width)
-            if column not in columns:
-                columns.append(column)
-            else:
-                failed_attempts += 1
-        return columns
+        previous_platform_block_start_distance = self.get_platform_block_start_distance(0)
+        for platform_block_index in range(1, self.BLOCKS_PER_PLATFORM - 1):
+            platform_block_start_distance = previous_platform_block_start_distance + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
+            primary_block_index_for_platform_block_start = platform_block_start_distance / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width
+            platform_block_end_distance = platform_block_start_distance + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
+            primary_block_index_for_platform_block_end = platform_block_end_distance / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width
+            primary_block_index_for_platform_block_center = int((primary_block_index_for_platform_block_start + primary_block_index_for_platform_block_end) / 2)
+            columns.append(primary_block_index_for_platform_block_center)
+            previous_platform_block_start_distance = platform_block_start_distance
+        principal_blocks_per_pig, remainder_distance = divmod(BLOCK_REGISTRY['pig'].width, BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width)
+        principal_blocks_per_pig = int(principal_blocks_per_pig)
+        if remainder_distance != 0:
+            principal_blocks_per_pig += 1
+        center_offsets = [i / 2 if i % 2 == 0 else -(i / 2 + 1) for i in range(principal_blocks_per_pig)]
+        return [column + center_offset for column in columns for center_offset in center_offsets]
+
 
     # Not being used right now, but might be used in the future.
     def insert_gaps_until_top(self, columns):
         for column in columns:
-            for center in self.CENTER_INDICES_OF_PLATFORM_BLOCK:
-                for row in range(len(self.blocks[column + center])):
-                    if self.blocks[column + center][row] != 'platform':
-                        self.blocks[column + center][row] = 'none'
+            for row in range(len(self.BLOCKS[column])):
+                if self.BLOCKS[column][row] != 'platform':
+                    self.BLOCKS[column][row] = 'none'
 
 
     def insert_gaps_until_top_platform(self, columns):
         for column in columns:
             for row in range(self.platforms[-1]):
-                if self.blocks[column][row] != 'platform':
-                    for center in self.CENTER_INDICES_OF_PLATFORM_BLOCK:
-                        self.blocks[column + center][row] = 'none'
+                if self.BLOCKS[column][row] != 'platform':
+                    self.BLOCKS[column][row] = 'none'
 
 
     def get_height_of_block(self, row):
@@ -158,7 +139,7 @@ class Structure:
         Returns XML elements to generate a Science Birds level.
         """
         elements = ''
-        for column_index, column in enumerate(self.blocks):
+        for column_index, column in enumerate(self.BLOCKS):
             for block_index, block in enumerate(column):
                 if block not in ['platform', 'none']:
                     elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].xml_element_name,
