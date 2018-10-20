@@ -97,7 +97,7 @@ class Structure:
 
 
     def generate_platforms(self):
-        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig'].height / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height) + 2]
+        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig'].height / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height) + 1 + 1 if BLOCK_REGISTRY['pig'].height % BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height != 0 else 0]
 
 
     def insert_platforms(self, platforms):
