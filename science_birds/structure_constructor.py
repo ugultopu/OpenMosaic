@@ -2,6 +2,7 @@ import logging as log
 from bisect import bisect_left
 
 from constants import (BLOCK_REGISTRY,
+                       MULTIPLIER,
                        GROUND_HEIGHT,
                        BLOCK_STRING,
                        PIG_STRING,
@@ -73,7 +74,9 @@ class Structure:
 
 
     def generate_platforms(self):
-        return range(self.SHORTEST_COLUMN_HEIGHT)[::int(BLOCK_REGISTRY['pig'].height / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height) + 1 + 1 if BLOCK_REGISTRY['pig'].height % BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height != 0 else 0]
+        principal_blocks_per_pig, remainder = divmod(int(BLOCK_REGISTRY['pig'].height * MULTIPLIER),
+                                                     int(BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height * MULTIPLIER))
+        return range(self.SHORTEST_COLUMN_HEIGHT)[::principal_blocks_per_pig + 1 + 1 if remainder != 0 else 0]
 
 
     def insert_platforms(self, platforms):
@@ -93,29 +96,30 @@ class Structure:
         """Get column indices to make room to place a pig in the center of each
         platform block, except the platform blocks on edges."""
         columns = []
+        self.gap_center_indices = []
+        principal_blocks_per_pig, remainder = divmod(int(BLOCK_REGISTRY['pig'].width * MULTIPLIER),
+                                                     int(BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width * MULTIPLIER))
+        if remainder != 0:
+            principal_blocks_per_pig += 1
         previous_platform_block_start_distance = self.get_platform_block_start_distance(0)
         for platform_block_index in range(1, self.BLOCKS_PER_PLATFORM - 1):
             platform_block_start_distance = previous_platform_block_start_distance + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
-            primary_block_index_for_platform_block_start = platform_block_start_distance / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width
+            primary_block_index_for_platform_block_start = int(platform_block_start_distance / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width)
             platform_block_end_distance = platform_block_start_distance + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
-            primary_block_index_for_platform_block_end = platform_block_end_distance / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width
-            primary_block_index_for_platform_block_center = int((primary_block_index_for_platform_block_start + primary_block_index_for_platform_block_end) / 2)
-            columns.append(primary_block_index_for_platform_block_center)
+            primary_block_index_for_platform_block_end = int(platform_block_end_distance / BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width)
+            primary_block_index_for_platform_block_center, remainder = divmod(primary_block_index_for_platform_block_start + primary_block_index_for_platform_block_end,
+                                                                              2)
+            if remainder == 0:
+                center_indices = [primary_block_index_for_platform_block_center]
+                self.gap_center_indices.append(primary_block_index_for_platform_block_center)
+            else:
+                center_indices = [primary_block_index_for_platform_block_center, primary_block_index_for_platform_block_center + 1]
+                self.gap_center_indices.append(primary_block_index_for_platform_block_center + 0.5)
+            while len(center_indices) < principal_blocks_per_pig:
+                center_indices = [center_indices[0] - 1] + center_indices + [center_indices[-1] + 1]
+            columns += center_indices
             previous_platform_block_start_distance = platform_block_start_distance
-        principal_blocks_per_pig, remainder_distance = divmod(BLOCK_REGISTRY['pig'].width, BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width)
-        principal_blocks_per_pig = int(principal_blocks_per_pig)
-        if remainder_distance != 0:
-            principal_blocks_per_pig += 1
-        center_offsets = [i / 2 if i % 2 == 0 else -(i / 2 + 1) for i in range(principal_blocks_per_pig)]
-        return [column + center_offset for column in columns for center_offset in center_offsets]
-
-
-    # Not being used right now, but might be used in the future.
-    def insert_gaps_until_top(self, columns):
-        for column in columns:
-            for row in range(len(self.BLOCKS[column])):
-                if self.BLOCKS[column][row] != 'platform':
-                    self.BLOCKS[column][row] = 'none'
+        return columns
 
 
     def insert_gaps_until_top_platform(self, columns):

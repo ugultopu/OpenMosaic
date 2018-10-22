@@ -7,6 +7,10 @@ BLOCK_REGISTRY = {
     'pig': Block('BasicSmall', 0.5, 0.5),
 }
 
+MULTIPLIER = 100
+'''To convert the dimensions from floting point to integer
+in order to avoid the peculiarities of floating point arithmetic.'''
+
 GROUND_HEIGHT = -3.5
 
 BLOCK_STRING = '<Block type="{}" material="{}" x="{}" y="{}" rotation="{}"/>\n'
