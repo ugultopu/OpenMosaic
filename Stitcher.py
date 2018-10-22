@@ -93,6 +93,7 @@ def main():
 
     Structure(config.get('DEFAULT', 'LevelPath'),
               config.get('DEFAULT', 'PrincipalBlock'),
+              config.get('DEFAULT', 'AuxiliaryBlock'),
               config.get('DEFAULT', 'PlatformBlock'),
               mosaic_tiles).construct_level()
 
