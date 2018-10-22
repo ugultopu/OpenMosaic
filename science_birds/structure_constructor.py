@@ -70,7 +70,7 @@ class Structure:
         if platforms is None:
             platforms = self.generate_platforms()
             self.insert_platforms(platforms)
-        self.platforms = platforms
+        self.PLATFORMS = platforms
 
 
     def generate_platforms(self):
@@ -124,7 +124,7 @@ class Structure:
 
     def insert_gaps_until_top_platform(self, columns):
         for column in columns:
-            for row in range(self.platforms[-1]):
+            for row in range(self.PLATFORMS[-1]):
                 if self.BLOCKS[column][row] != 'platform':
                     self.BLOCKS[column][row] = 'none'
 
@@ -134,7 +134,7 @@ class Structure:
         Assumes the "platforms" are sorted and the blocks in "platforms" have
         been placed in "blocks".
         """
-        number_of_platforms = bisect_left(self.platforms, row)
+        number_of_platforms = bisect_left(self.PLATFORMS, row)
         return GROUND_HEIGHT + (row - number_of_platforms) * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].height + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK].height
 
 
@@ -156,7 +156,7 @@ class Structure:
 
     def get_xml_elements_for_platform_blocks(self):
         elements = ''
-        for platform in self.platforms:
+        for platform in self.PLATFORMS:
             for index in range(self.BLOCKS_PER_PLATFORM):
                 elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PLATFORM_BLOCK].xml_element_name,
                                                 'stone',
@@ -166,12 +166,25 @@ class Structure:
         return elements
 
 
+    def get_xml_elements_for_pigs(self):
+        elements = ''
+        for platform in self.PLATFORMS[:-1]:
+            for index in self.gap_center_indices:
+                elements += PIG_STRING.format(BLOCK_REGISTRY['pig'].xml_element_name,
+                                              '',
+                                              index * BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width + BLOCK_REGISTRY[self.PRINCIPAL_BLOCK].width / 2,
+                                              self.get_height_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height + BLOCK_REGISTRY['pig'].height / 2,
+                                              0)
+        return elements
+
+
     def construct_level(self):
         self.insert_gaps_until_top_platform(self.get_column_indices_for_gaps())
         principal_block_elements = self.get_xml_elements_for_principal_blocks()
         platform_block_elements = self.get_xml_elements_for_platform_blocks()
+        pig_elements = self.get_xml_elements_for_pigs()
         with open(self.LEVEL_PATH, 'w') as level_file:
-            level_file.write(LEVEL_TEMPLATE.strip().format(principal_block_elements + platform_block_elements))
+            level_file.write(LEVEL_TEMPLATE.strip().format(principal_block_elements + platform_block_elements + pig_elements))
 
 
 if __name__ == '__main__':
