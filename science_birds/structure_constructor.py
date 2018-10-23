@@ -70,6 +70,7 @@ class Structure:
             platforms = self.generate_platforms()
             self.insert_platforms(platforms)
         self.PLATFORMS = platforms
+        self.TOP_PLATFORM = self.PLATFORMS[-1]
 
 
     def generate_platforms(self):
@@ -123,14 +124,20 @@ class Structure:
 
     def insert_gaps_until_top_platform(self, columns):
         for column in columns:
-            for row in range(self.PLATFORMS[-1]):
+            for row in range(self.TOP_PLATFORM):
                 if self.BLOCKS[column][row] != 'platform':
                     self.BLOCKS[column][row] = 'none'
 
 
-    def get_lateral_distance_of_block(self, column):
-        # TODO
-        pass
+    def get_lateral_distance_of_block(self, column_index, block_type):
+        if block_type is 'primary_block':
+            return column_index * BLOCK_REGISTRY[self.PRIMARY_BLOCK].width
+        elif block_type is 'platform_block':
+            return -(self.BLOCKS_PER_PLATFORM * BLOCK_REGISTRY[self.PLATFORM_BLOCK].width - self.STRUCTURE_WIDTH) / 2 + column_index * BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
+        elif block_type is 'auxiliary_block':
+            return column_index * BLOCK_REGISTRY[self.AUXILIARY_BLOCK].width
+        else:
+            log.warning('Unknown block type: "%s"', block_type)
 
 
     def get_vertical_distance_of_block(self, row):
@@ -141,16 +148,16 @@ class Structure:
         number_of_platforms = bisect_left(self.PLATFORMS, row)
         # Up to the top platform, there are PRIMARY_BLOCKs, after the top
         # platform, there are only AUXILIARY_BLOCKs.
-        if row <= self.PLATFORMS[-1]:
+        if row <= self.TOP_PLATFORM:
             return (GROUND_HEIGHT
                     + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK].height
                     + (row - number_of_platforms) * BLOCK_REGISTRY[self.PRIMARY_BLOCK].height)
         else:
-            NUMBER_OF_PRIMARY_BLOCK_ROWS = self.PLATFORMS[-1] + 1 - len(self.PLATFORMS)
+            NUMBER_OF_PRIMARY_BLOCK_ROWS = self.TOP_PLATFORM + 1 - len(self.PLATFORMS)
             return (GROUND_HEIGHT
                     + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK].height
                     + NUMBER_OF_PRIMARY_BLOCK_ROWS * BLOCK_REGISTRY[self.PRIMARY_BLOCK].height
-                    + (row - self.PLATFORMS[-1] - 1) * BLOCK_REGISTRY[self.AUXILIARY_BLOCK].height)
+                    + (row - self.TOP_PLATFORM - 1) * BLOCK_REGISTRY[self.AUXILIARY_BLOCK].height)
 
 
     def get_xml_elements_for_primary_blocks(self):
@@ -159,25 +166,13 @@ class Structure:
         """
         elements = ''
         for column_index, column in enumerate(self.BLOCKS):
-            for block_index, block in enumerate(column[:self.PLATFORMS[-1]]):
+            for block_index, block in enumerate(column[:self.TOP_PLATFORM]):
                 if block not in ['platform', 'none']:
                     elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRIMARY_BLOCK].xml_element_name,
                                                     get_block_type(block),
-                                                    column_index * BLOCK_REGISTRY[self.PRIMARY_BLOCK].width + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2,
+                                                    self.get_lateral_distance_of_block(column_index, 'primary_block') + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2,
                                                     self.get_vertical_distance_of_block(block_index) + BLOCK_REGISTRY[self.PRIMARY_BLOCK].height / 2,
                                                     0)
-        return elements
-
-
-    def get_xml_elements_for_auxiliary_blocks(self):
-        elements = ''
-        for column_index, column in enumerate(self.BLOCKS):
-            for block_index, block in enumerate(column[self.PLATFORMS[-1] + 1:]):
-                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.AUXILIARY_BLOCK].xml_element_name,
-                                                get_block_type(block),
-                                                column_index * BLOCK_REGISTRY[self.AUXILIARY_BLOCK].width + BLOCK_REGISTRY[self.AUXILIARY_BLOCK].width / 2,
-                                                self.get_vertical_distance_of_block(self.PLATFORMS[-1] + 1 + block_index) + BLOCK_REGISTRY[self.AUXILIARY_BLOCK].height / 2,
-                                                0)
         return elements
 
 
@@ -187,8 +182,20 @@ class Structure:
             for index in range(self.BLOCKS_PER_PLATFORM):
                 elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PLATFORM_BLOCK].xml_element_name,
                                                 'stone',
-                                                self.get_platform_block_start_distance(index) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / 2,
+                                                self.get_lateral_distance_of_block(index, 'platform_block') + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / 2,
                                                 self.get_vertical_distance_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height / 2,
+                                                0)
+        return elements
+
+
+    def get_xml_elements_for_auxiliary_blocks(self):
+        elements = ''
+        for column_index, column in enumerate(self.BLOCKS):
+            for block_index, block in enumerate(column[self.TOP_PLATFORM + 1:]):
+                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.AUXILIARY_BLOCK].xml_element_name,
+                                                get_block_type(block),
+                                                self.get_lateral_distance_of_block(column_index, 'auxiliary_block') + BLOCK_REGISTRY[self.AUXILIARY_BLOCK].width / 2,
+                                                self.get_vertical_distance_of_block(self.TOP_PLATFORM + 1 + block_index) + BLOCK_REGISTRY[self.AUXILIARY_BLOCK].height / 2,
                                                 0)
         return elements
 
@@ -199,7 +206,7 @@ class Structure:
             for index in self.gap_center_indices:
                 elements += PIG_STRING.format(BLOCK_REGISTRY['pig'].xml_element_name,
                                               '',
-                                              index * BLOCK_REGISTRY[self.PRIMARY_BLOCK].width + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2,
+                                              self.get_lateral_distance_of_block(index, 'primary_block') + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2,
                                               self.get_vertical_distance_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height + BLOCK_REGISTRY['pig'].height / 2,
                                               0)
         return elements
