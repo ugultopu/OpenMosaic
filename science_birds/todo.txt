@@ -1,5 +1,7 @@
+- There is a lot of code duplication for level generator functions. Condense
+them.
 - Convert the ALL_CAPS names to snake_case names.
-- Check if you can edit/condensate, etc. the LEVEL_TEMPLATE in
+- Check if you can edit/condense, etc. the LEVEL_TEMPLATE in
 'science_birds_constants'.
 - Convert the appropriate methods to class methods ("static methods" in Java
  terms).

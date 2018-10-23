@@ -50,7 +50,8 @@ class Structure:
     def __init__(self,
                  level_path,
                  primary_block,
-                 auxiliary_block,
+                 left_auxiliary_block,
+                 right_auxiliary_block,
                  platform_block,
                  blocks,
                  platforms=None):
@@ -58,9 +59,10 @@ class Structure:
         self.PRIMARY_BLOCK = primary_block
         """ PRIMARY_BLOCK is the block that is used to fill up the structure
         until the top platform."""
-        self.AUXILIARY_BLOCK = auxiliary_block
-        """ AUXILIARY_BLOCK is the block that is used to fill up the structure
-        after the top platform."""
+        self.LEFT_AUXILIARY_BLOCK = left_auxiliary_block
+        self.RIGHT_AUXILIARY_BLOCK = right_auxiliary_block
+        """ AUXILIARY_BLOCKs are the blocks that are used to fill up the
+        structure after the top platform."""
         self.PLATFORM_BLOCK = platform_block
         self.BLOCKS = remove_ice_blocks(transpose_and_invert_blocks(blocks))
         self.STRUCTURE_WIDTH = BLOCK_REGISTRY[self.PRIMARY_BLOCK].width * len(self.BLOCKS)
@@ -134,13 +136,15 @@ class Structure:
             return column_index * BLOCK_REGISTRY[self.PRIMARY_BLOCK].width
         elif block_type is 'platform_block':
             return -(self.BLOCKS_PER_PLATFORM * BLOCK_REGISTRY[self.PLATFORM_BLOCK].width - self.STRUCTURE_WIDTH) / 2 + column_index * BLOCK_REGISTRY[self.PLATFORM_BLOCK].width
-        elif block_type is 'auxiliary_block':
-            return column_index * BLOCK_REGISTRY[self.AUXILIARY_BLOCK].width
+        elif block_type is 'left_auxiliary_block':
+            return column_index * BLOCK_REGISTRY[self.LEFT_AUXILIARY_BLOCK].width
+        elif block_type is 'right_auxiliary_block':
+            return column_index * BLOCK_REGISTRY[self.RIGHT_AUXILIARY_BLOCK].width
         else:
             log.warning('Unknown block type: "%s"', block_type)
 
 
-    def get_vertical_distance_of_block(self, row):
+    def get_vertical_distance_of_block(self, row, lateral_distance):
         """
         Assumes the "platforms" are sorted and the blocks in "platforms" have
         been placed in "blocks".
@@ -157,7 +161,7 @@ class Structure:
             return (GROUND_HEIGHT
                     + number_of_platforms * BLOCK_REGISTRY[self.PLATFORM_BLOCK].height
                     + NUMBER_OF_PRIMARY_BLOCK_ROWS * BLOCK_REGISTRY[self.PRIMARY_BLOCK].height
-                    + (row - self.TOP_PLATFORM - 1) * BLOCK_REGISTRY[self.AUXILIARY_BLOCK].height)
+                    + (row - self.TOP_PLATFORM - 1) * BLOCK_REGISTRY[self.LEFT_AUXILIARY_BLOCK if lateral_distance < self.STRUCTURE_WIDTH / 2 else self.RIGHT_AUXILIARY_BLOCK].height)
 
 
     def get_xml_elements_for_primary_blocks(self):
@@ -168,10 +172,11 @@ class Structure:
         for column_index, column in enumerate(self.BLOCKS):
             for block_index, block in enumerate(column[:self.TOP_PLATFORM]):
                 if block not in ['platform', 'none']:
+                    lateral_distance = self.get_lateral_distance_of_block(column_index, 'primary_block') + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2
                     elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRIMARY_BLOCK].xml_element_name,
                                                     get_block_type(block),
-                                                    self.get_lateral_distance_of_block(column_index, 'primary_block') + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2,
-                                                    self.get_vertical_distance_of_block(block_index) + BLOCK_REGISTRY[self.PRIMARY_BLOCK].height / 2,
+                                                    lateral_distance,
+                                                    self.get_vertical_distance_of_block(block_index, lateral_distance) + BLOCK_REGISTRY[self.PRIMARY_BLOCK].height / 2,
                                                     0)
         return elements
 
@@ -180,22 +185,32 @@ class Structure:
         elements = ''
         for platform in self.PLATFORMS:
             for index in range(self.BLOCKS_PER_PLATFORM):
+                lateral_distance = self.get_lateral_distance_of_block(index, 'platform_block') + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / 2
                 elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PLATFORM_BLOCK].xml_element_name,
                                                 'stone',
-                                                self.get_lateral_distance_of_block(index, 'platform_block') + BLOCK_REGISTRY[self.PLATFORM_BLOCK].width / 2,
-                                                self.get_vertical_distance_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height / 2,
+                                                lateral_distance,
+                                                self.get_vertical_distance_of_block(platform, lateral_distance) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height / 2,
                                                 0)
         return elements
 
 
     def get_xml_elements_for_auxiliary_blocks(self):
         elements = ''
-        for column_index, column in enumerate(self.BLOCKS):
-            for block_index, block in enumerate(column[self.TOP_PLATFORM + 1:]):
-                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.AUXILIARY_BLOCK].xml_element_name,
-                                                get_block_type(block),
-                                                self.get_lateral_distance_of_block(column_index, 'auxiliary_block') + BLOCK_REGISTRY[self.AUXILIARY_BLOCK].width / 2,
-                                                self.get_vertical_distance_of_block(self.TOP_PLATFORM + 1 + block_index) + BLOCK_REGISTRY[self.AUXILIARY_BLOCK].height / 2,
+        for column_index in range(int(self.STRUCTURE_WIDTH / 2 / BLOCK_REGISTRY[self.LEFT_AUXILIARY_BLOCK].width)):
+            for row_index in range(5):
+                lateral_distance = self.get_lateral_distance_of_block(column_index, 'left_auxiliary_block') + BLOCK_REGISTRY[self.LEFT_AUXILIARY_BLOCK].width / 2
+                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.LEFT_AUXILIARY_BLOCK].xml_element_name,
+                                                'stone',
+                                                lateral_distance,
+                                                self.get_vertical_distance_of_block(self.TOP_PLATFORM + 1 + row_index, lateral_distance) + BLOCK_REGISTRY[self.LEFT_AUXILIARY_BLOCK].height / 2,
+                                                0)
+        for column_index in range(int(self.STRUCTURE_WIDTH / 2 / BLOCK_REGISTRY[self.RIGHT_AUXILIARY_BLOCK].width)):
+            for row_index in range(5):
+                lateral_distance = self.get_lateral_distance_of_block(column_index, 'right_auxiliary_block') + BLOCK_REGISTRY[self.RIGHT_AUXILIARY_BLOCK].width / 2
+                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.RIGHT_AUXILIARY_BLOCK].xml_element_name,
+                                                'stone',
+                                                self.STRUCTURE_WIDTH / 2 + lateral_distance,
+                                                self.get_vertical_distance_of_block(self.TOP_PLATFORM + 1 + row_index, self.STRUCTURE_WIDTH / 2 + lateral_distance) + BLOCK_REGISTRY[self.RIGHT_AUXILIARY_BLOCK].height / 2,
                                                 0)
         return elements
 
@@ -204,10 +219,11 @@ class Structure:
         elements = ''
         for platform in self.PLATFORMS[:-1]:
             for index in self.gap_center_indices:
+                lateral_distance = self.get_lateral_distance_of_block(index, 'primary_block') + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2
                 elements += PIG_STRING.format(BLOCK_REGISTRY['pig'].xml_element_name,
                                               '',
-                                              self.get_lateral_distance_of_block(index, 'primary_block') + BLOCK_REGISTRY[self.PRIMARY_BLOCK].width / 2,
-                                              self.get_vertical_distance_of_block(platform) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height + BLOCK_REGISTRY['pig'].height / 2,
+                                              lateral_distance,
+                                              self.get_vertical_distance_of_block(platform, lateral_distance) + BLOCK_REGISTRY[self.PLATFORM_BLOCK].height + BLOCK_REGISTRY['pig'].height / 2,
                                               0)
         return elements
 
