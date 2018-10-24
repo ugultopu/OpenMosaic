@@ -1,3 +1,9 @@
+- To prevent the sliding of auxiliary blocks when the primary block is bigger
+than the auxiliary block, you can try enforcing the ground story with a
+primary block outside of the structure on each side.
+- Find a way to calculate the OpenMosaic tile dimension (5, 15, etc.) from the
+PrimaryBlock and AuxiliaryBlock specified in "science_birds" config file and
+run the mosaic generator with that calculated value.
 - There is a lot of code duplication for level generator functions. Condense
 them.
 - Convert the ALL_CAPS names to snake_case names.

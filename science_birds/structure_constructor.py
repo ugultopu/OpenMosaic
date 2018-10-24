@@ -126,7 +126,6 @@ class Structure:
         self.GAP_INDICES = []
         for platform in range(1, self.BLOCKS_PER_PLATFORM - 1):
             gap_indices = self.get_gap_indices_of_platform_block(platform)
-            print 'gap indices for platform "{}" is "{}"'.format(platform, gap_indices)
             self.GAP_INDICES.extend(gap_indices)
 
 
@@ -174,7 +173,20 @@ class Structure:
         return elements
 
 
+    def get_xml_elements_for_primary_blocks(self):
+        elements = ''
+        for column_index, column in enumerate(self.BLOCKS_ABOVE_TOP_PLATFORM):
+            for row_index, block in enumerate(column):
+                elements += BLOCK_STRING.format(BLOCK_REGISTRY[self.PRIMARY_BLOCK].xml_element_name,
+                                                'stone',
+                                                self.get_lateral_distance_of_block(column_index, self.PRIMARY_BLOCK),
+                                                GROUND_HEIGHT + self.NUMBER_OF_STORIES * self.STORY_HEIGHT + row_index * BLOCK_REGISTRY[self.PRIMARY_BLOCK].height + BLOCK_REGISTRY[self.PRIMARY_BLOCK].height / 2,
+                                                0)
+        return elements
+
+
     def construct_level(self):
         with open(self.LEVEL_PATH, 'w') as level_file:
             level_file.write(LEVEL_TEMPLATE.strip().format(self.get_xml_elements_for_auxiliary_blocks()
-                                                           + self.get_xml_elements_for_platforms()))
+                                                           + self.get_xml_elements_for_platforms()
+                                                           + self.get_xml_elements_for_primary_blocks()))
