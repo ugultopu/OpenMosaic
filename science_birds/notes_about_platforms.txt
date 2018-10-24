@@ -1,3 +1,20 @@
+1) Calculate:
+  1) STRUCTURE_WIDTH
+  2) Height of the shortest column.
+2) Discard the part of the structure below the height of the shortest column.
+3) Do your computations (platform generation, XML generation for the part below
+the top platform, etc.) for lower part of the structure.
+4) Do the XML generation for the upper part of the structure as if the ground
+starts from the top platform.
+
+The concept of AUXILIARY_BLOCK changes. Now, we will:
+1) Build the structure using OpenMosaic, just like how we did before.
+2) Detect the TOP_PLATFORM height.
+3) Fill the below of the TOP_PLATFORM with AUXILIARY_BLOCKs and insert
+platforms, gaps and pigs there.
+This way, the part of above the structure and the part below will have different
+types of blocks.
+
 One of the reasons for the instability of the platforms is the following: When
 we add a platform, the platform's ceiling has the rectangle tile, instead of
 the square tile. Rectangle tile and square tile have different heights.

@@ -92,9 +92,8 @@ def main():
     config.read('science_birds/config.ini')
 
     Structure(config.get('DEFAULT', 'LevelPath'),
-              config.get('DEFAULT', 'PrincipalBlock'),
-              config.get('DEFAULT', 'LeftAuxiliaryBlock'),
-              config.get('DEFAULT', 'RightAuxiliaryBlock'),
+              config.get('DEFAULT', 'PrimaryBlock'),
+              config.get('DEFAULT', 'AuxiliaryBlock'),
               config.get('DEFAULT', 'PlatformBlock'),
               mosaic_tiles).construct_level()
 

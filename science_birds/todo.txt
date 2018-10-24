@@ -3,8 +3,6 @@ them.
 - Convert the ALL_CAPS names to snake_case names.
 - Check if you can edit/condense, etc. the LEVEL_TEMPLATE in
 'science_birds_constants'.
-- Convert the appropriate methods to class methods ("static methods" in Java
- terms).
 
 DONE
 ----
@@ -33,3 +31,7 @@ structure block, etc. from that file.
 - Make the output write directly to Science Birds level directory, so that you
 won't need to do any copy-pasting at all after program run. You will be able to
 just start the level and test it.
+- There is a lot of code duplication for "divmod" invocation and the ternary
+operator that comes after it. Put that in a function and call that function.
+- Convert the appropriate methods to class methods ("static methods" in Java
+ terms).
